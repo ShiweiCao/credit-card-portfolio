@@ -1,0 +1,6 @@
+{
+  "name": "Credit Card Portfolio & 5/24 Tracker",
+  "description": "Track credit card open dates, product change history, annual fee renewals, and bank welcome bonus eligibility under Chase 5/24 and other bank restrictions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
