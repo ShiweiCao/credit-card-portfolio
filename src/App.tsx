@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, ProductChange, FiveTwentyFourStatus } from './types';
-import { INITIAL_CARDS } from './data/initialCards';
+import { INITIAL_CARDS, SAMPLE_CARDS } from './data/initialCards';
 import { calculateChase524 } from './utils/rulesEngine';
 import { getNextRenewalDate, getDaysUntil } from './utils/dateUtils';
 import { Navbar } from './components/Navbar';
@@ -197,8 +197,16 @@ export default function App() {
   // Reset to initial sample
   const handleResetData = () => {
     if (window.confirm('Reset portfolio to sample credit cards and product changes?')) {
-      setCards(INITIAL_CARDS);
+      setCards(SAMPLE_CARDS);
       showToast('Portfolio reset to sample data');
+    }
+  };
+
+  const handleClearAllData = () => {
+    if (window.confirm('Clear all portfolio data? This cannot be undone.')) {
+      localStorage.removeItem(STORAGE_KEY);
+      setCards([]);
+      showToast('All portfolio data cleared', 'info');
     }
   };
 
@@ -244,6 +252,7 @@ export default function App() {
         onExportData={handleExportData}
         onImportData={handleImportData}
         onResetData={handleResetData}
+        onClearAllData={handleClearAllData}
       />
 
       {/* Main Content Area */}

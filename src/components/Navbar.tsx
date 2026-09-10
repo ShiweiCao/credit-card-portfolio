@@ -11,6 +11,8 @@ import {
   Download,
   Upload,
   RotateCcw,
+  Settings,
+  Trash2,
   Menu,
   X,
 } from 'lucide-react';
@@ -27,6 +29,7 @@ interface NavbarProps {
   onExportData: () => void;
   onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onResetData: () => void;
+  onClearAllData: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -40,6 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onExportData,
   onImportData,
   onResetData,
+  onClearAllData,
 }) => {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -139,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="p-2 text-neutral-500 hover:text-neutral-800 rounded-xl hover:bg-neutral-100 transition-colors"
                 title="Backup & Sample Data Options"
               >
-                <RotateCcw className="w-4 h-4" />
+                <Settings className="w-4 h-4" />
               </button>
 
               {showSettingsMenu && (
@@ -174,6 +178,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
                     <span>Reset Sample Portfolio</span>
+                  </button>
+
+                  <button
+                    onClick={onClearAllData}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-rose-700 hover:bg-rose-50 text-left transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Clear All Portfolio Data</span>
                   </button>
                 </div>
               )}

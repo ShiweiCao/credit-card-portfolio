@@ -1,6 +1,8 @@
 import { CreditCard } from '../types';
 
-export const INITIAL_CARDS: CreditCard[] = [
+export const INITIAL_CARDS: CreditCard[] = [];
+
+export const SAMPLE_CARDS: CreditCard[] = [
   {
     id: 'card-1',
     bank: 'Chase',
