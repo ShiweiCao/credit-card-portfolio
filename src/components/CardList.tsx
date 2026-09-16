@@ -17,7 +17,10 @@ import {
   History,
   Building2,
   Filter,
+  ArrowDownUp,
 } from 'lucide-react';
+
+type SortOption = 'openDate' | 'annualFeeHighToLow' | 'annualFeeLowToHigh' | 'nextAnnualFee' | 'bank';
 
 interface CardListProps {
   cards: CreditCard[];
@@ -42,6 +45,7 @@ export const CardList: React.FC<CardListProps> = ({
   const [selectedBank, setSelectedBank] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('active');
+  const [sortOption, setSortOption] = useState<SortOption>('openDate');
 
   const filteredCards = cards.filter((card) => {
     // Search
@@ -67,6 +71,28 @@ export const CardList: React.FC<CardListProps> = ({
   });
 
   const allBanks = Array.from(new Set(cards.map((c) => c.bank)));
+  const sortedCards = [...filteredCards]
+    // A renewal date only has meaning for cards that actually charge an annual fee.
+    .filter((card) => sortOption !== 'nextAnnualFee' || card.annualFee > 0)
+    .sort((a, b) => {
+      switch (sortOption) {
+        case 'annualFeeHighToLow':
+          return b.annualFee - a.annualFee || a.currentName.localeCompare(b.currentName);
+        case 'annualFeeLowToHigh':
+          return a.annualFee - b.annualFee || a.currentName.localeCompare(b.currentName);
+        case 'nextAnnualFee':
+          return (
+            getDaysUntil(getNextRenewalDate(a.openDate, a.feeRenewalDate)) -
+              getDaysUntil(getNextRenewalDate(b.openDate, b.feeRenewalDate)) ||
+            a.currentName.localeCompare(b.currentName)
+          );
+        case 'bank':
+          return a.bank.localeCompare(b.bank) || a.currentName.localeCompare(b.currentName);
+        case 'openDate':
+        default:
+          return b.openDate.localeCompare(a.openDate) || a.currentName.localeCompare(b.currentName);
+      }
+    });
 
   return (
     <div className="space-y-6" id="card-list-view">
@@ -86,8 +112,24 @@ export const CardList: React.FC<CardListProps> = ({
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Sorting and actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative group">
+              <ArrowDownUp className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-600 transition-transform duration-200 group-hover:scale-110" />
+              <select
+                id="sort-cards-select"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as SortOption)}
+                className="appearance-none min-w-52 rounded-xl border border-indigo-200 bg-indigo-50 py-2.5 pl-9 pr-8 text-xs sm:text-sm font-semibold text-indigo-900 shadow-xs outline-none transition-all hover:border-indigo-300 hover:bg-indigo-100 focus:ring-2 focus:ring-indigo-500"
+                aria-label="Sort cards"
+              >
+                <option value="openDate">Open date (newest)</option>
+                <option value="annualFeeHighToLow">Annual fee (high to low)</option>
+                <option value="annualFeeLowToHigh">Annual fee (low to high)</option>
+                <option value="nextAnnualFee">Next annual fee due</option>
+                <option value="bank">Bank (A–Z)</option>
+              </select>
+            </div>
             <button
               id="add-card-toolbar-btn"
               onClick={onAddCard}
@@ -98,6 +140,12 @@ export const CardList: React.FC<CardListProps> = ({
             </button>
           </div>
         </div>
+
+        {sortOption === 'nextAnnualFee' && (
+          <div className="-mt-1 flex items-center gap-1.5 text-[11px] font-medium text-indigo-700">
+            <ArrowDownUp className="w-3 h-3" /> Showing cards with an annual fee only
+          </div>
+        )}
 
         {/* Filter Pills */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-100 text-xs">
@@ -161,7 +209,7 @@ export const CardList: React.FC<CardListProps> = ({
       </div>
 
       {/* Cards Grid */}
-      {filteredCards.length === 0 ? (
+      {sortedCards.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 border border-neutral-200 text-center space-y-3">
           <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center mx-auto text-neutral-400">
             <CardIcon className="w-6 h-6" />
@@ -180,7 +228,7 @@ export const CardList: React.FC<CardListProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredCards.map((card) => {
+          {sortedCards.map((card) => {
             const hasProductChange = (card.productChanges || []).length > 0;
             const nextRenewal = getNextRenewalDate(card.openDate, card.feeRenewalDate);
             const daysUntilFee = getDaysUntil(nextRenewal);

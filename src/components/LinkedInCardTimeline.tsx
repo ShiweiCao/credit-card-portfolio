@@ -292,11 +292,11 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
               className="w-16 h-10 shadow-xs shrink-0"
             />
 
-            {/* Bank & Overall Tenure Details */}
+            {/* Card & Overall Tenure Details */}
             <div className="space-y-0.5">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base sm:text-lg font-bold text-neutral-900 leading-tight">
-                  {branding.displayName}
+                  {card.nickname || card.currentName}
                 </h3>
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-neutral-100 text-neutral-700">
                   {card.cardType === 'business' ? 'Business Credit' : 'Personal Line'}
@@ -311,6 +311,11 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
                     Active Account
                   </span>
                 )}
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs text-neutral-500 font-medium">
+                <BankLogo bank={card.bank} size="xs" />
+                <span>{branding.displayName}</span>
               </div>
 
               {/* Total Tenure (e.g. 2 yrs 5 mos) */}

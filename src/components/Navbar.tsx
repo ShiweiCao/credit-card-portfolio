@@ -30,6 +30,7 @@ interface NavbarProps {
   onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onResetData: () => void;
   onClearAllData: () => void;
+  onOpenCloudSync: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -44,6 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onImportData,
   onResetData,
   onClearAllData,
+  onOpenCloudSync,
 }) => {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -149,10 +151,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               {showSettingsMenu && (
                 <div
                   className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-neutral-200 p-2 z-50 text-xs space-y-1"
-                  onClick={() => setShowSettingsMenu(false)}
                 >
                   <button
-                    onClick={onExportData}
+                    onClick={() => {
+                      onExportData();
+                      setShowSettingsMenu(false);
+                    }}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-neutral-700 hover:bg-neutral-100 text-left transition-colors"
                   >
                     <Download className="w-3.5 h-3.5 text-neutral-500" />
@@ -165,15 +169,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <input
                       type="file"
                       accept=".json"
-                      onChange={onImportData}
+                      onChange={(event) => {
+                        onImportData(event);
+                        setShowSettingsMenu(false);
+                      }}
                       className="hidden"
                     />
                   </label>
 
+                  <button
+                    onClick={() => {
+                      onOpenCloudSync();
+                      setShowSettingsMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-neutral-700 hover:bg-neutral-100 text-left transition-colors"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-neutral-500" />
+                    <span>Cloud Sync (GitHub Gist)</span>
+                  </button>
+
                   <div className="border-t border-neutral-100 my-1"></div>
 
                   <button
-                    onClick={onResetData}
+                    onClick={() => {
+                      onResetData();
+                      setShowSettingsMenu(false);
+                    }}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-amber-700 hover:bg-amber-50 text-left transition-colors"
                   >
                     <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
@@ -181,7 +202,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
 
                   <button
-                    onClick={onClearAllData}
+                    onClick={() => {
+                      onClearAllData();
+                      setShowSettingsMenu(false);
+                    }}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-rose-700 hover:bg-rose-50 text-left transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-600" />

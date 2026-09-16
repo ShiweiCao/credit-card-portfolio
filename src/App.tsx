@@ -11,9 +11,11 @@ import { AnnualFeeSummary } from './components/AnnualFeeSummary';
 import { ProductChangeHistory } from './components/ProductChangeHistory';
 import { EligibilityTracker } from './components/EligibilityTracker';
 import { LinkedInTimelineModal } from './components/LinkedInTimelineModal';
+import { CloudSyncModal } from './components/CloudSyncModal';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { APP_STORAGE_KEY, exportToGist, GistSyncError, importFromGist } from './utils/gistSync';
 
-const STORAGE_KEY = 'credit_card_tracker_portfolio_v1';
+const STORAGE_KEY = APP_STORAGE_KEY;
 
 export default function App() {
   const [cards, setCards] = useState<CreditCard[]>(() => {
@@ -40,6 +42,7 @@ export default function App() {
   const [isPCModalOpen, setIsPCModalOpen] = useState(false);
   const [selectedCardIdForPC, setSelectedCardIdForPC] = useState<string | undefined>(undefined);
   const [cardForTimelineModal, setCardForTimelineModal] = useState<CreditCard | null>(null);
+  const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
 
   // Toast notification
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -210,6 +213,25 @@ export default function App() {
     }
   };
 
+  const handleCloudExport = async () => {
+    try {
+      const result = await exportToGist();
+      showToast(result.created ? `Cloud backup created (Gist ${result.gistId})` : 'Cloud backup updated');
+    } catch (error) {
+      showToast(error instanceof GistSyncError ? error.message : 'Cloud export failed. Please try again.', 'error');
+    }
+  };
+
+  const handleCloudImport = async () => {
+    try {
+      const importedCards = await importFromGist();
+      setCards(importedCards as CreditCard[]);
+      showToast(`Restored ${importedCards.length} cards from cloud`);
+    } catch (error) {
+      showToast(error instanceof GistSyncError ? error.message : 'Cloud import failed. Please try again.', 'error');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-100 text-neutral-900 flex flex-col font-sans selection:bg-neutral-900 selection:text-white">
       {/* Toast alert */}
@@ -253,6 +275,7 @@ export default function App() {
         onImportData={handleImportData}
         onResetData={handleResetData}
         onClearAllData={handleClearAllData}
+        onOpenCloudSync={() => setIsCloudSyncOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -318,6 +341,13 @@ export default function App() {
           handleOpenProductChange(cardId);
         }}
         onDeleteProductChange={handleDeleteProductChange}
+      />
+
+      <CloudSyncModal
+        isOpen={isCloudSyncOpen}
+        onClose={() => setIsCloudSyncOpen(false)}
+        onExport={handleCloudExport}
+        onImport={handleCloudImport}
       />
     </div>
   );
