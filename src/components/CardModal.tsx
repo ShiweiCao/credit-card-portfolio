@@ -125,7 +125,7 @@ export const CardModal: React.FC<CardModalProps> = ({
       setNetwork(cardToEdit.network);
       setStatus(cardToEdit.status);
       setCreditLimit(cardToEdit.creditLimit ? String(cardToEdit.creditLimit) : '');
-      setFeeRenewalDate(cardToEdit.feeRenewalDate || cardToEdit.openDate);
+      setFeeRenewalDate(cardToEdit.feeRenewalDate || '');
       setNotes(cardToEdit.notes || '');
       setImageUrl(cardToEdit.imageUrl || '');
       setCardColor(cardToEdit.cardColor || '');
@@ -181,7 +181,7 @@ export const CardModal: React.FC<CardModalProps> = ({
       network,
       status,
       creditLimit: creditLimit ? Number(creditLimit) : undefined,
-      feeRenewalDate: feeRenewalDate || openDate,
+      feeRenewalDate: feeRenewalDate || undefined,
       productChanges: cardToEdit ? cardToEdit.productChanges : [],
       notes: notes.trim() || undefined,
       cardColor: cardColor || cardToEdit?.cardColor || BANK_GRADIENTS[bank] || 'from-neutral-700 to-neutral-900',
@@ -335,12 +335,19 @@ export const CardModal: React.FC<CardModalProps> = ({
             </div>
 
             <div>
+              <label
+                htmlFor="card-autocomplete-input"
+                className="flex min-h-6 items-center text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider"
+              >
+                Card Name *
+              </label>
               <CardAutocompleteInput
                 value={cardName}
                 onChange={(val) => setCardName(val)}
                 onSelectCard={handleSelectCatalogCard}
-                selectedBank={bank}
+                bankFilter={bank}
                 placeholder="Search card catalog e.g. Sapphire, Gold..."
+                required
               />
             </div>
           </div>
@@ -403,6 +410,28 @@ export const CardModal: React.FC<CardModalProps> = ({
               </div>
               <p className="text-[11px] text-neutral-500 mt-1">
                 Enter 0 if card has no annual fee.
+              </p>
+            </div>
+          </div>
+
+          {/* Optional annual fee billing date override */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="card-input-fee-renewal-date"
+                className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider"
+              >
+                Annual Fee Renewal Date <span className="normal-case font-normal text-neutral-400">(Optional)</span>
+              </label>
+              <input
+                id="card-input-fee-renewal-date"
+                type="date"
+                value={feeRenewalDate}
+                onChange={(e) => setFeeRenewalDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-white border border-neutral-300 rounded-xl text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
+              />
+              <p className="text-[11px] text-neutral-500 mt-1">
+                Leave blank to use the account opening anniversary.
               </p>
             </div>
           </div>
