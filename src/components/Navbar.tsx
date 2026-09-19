@@ -12,6 +12,10 @@ import {
   Trash2,
   Menu,
   X,
+  LayoutGrid,
+  ReceiptText,
+  GitBranch,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -197,24 +201,26 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="tab-btn-cards"
             onClick={() => setActiveTab('cards')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 ${
               activeTab === 'cards'
-                ? 'bg-neutral-900 text-white shadow-xs'
+                ? 'bg-neutral-900 text-white shadow-xs -translate-y-px'
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             }`}
           >
-            Cards ({activeAccountCount})
+            <LayoutGrid className={`w-3.5 h-3.5 transition-transform duration-200 ${activeTab === 'cards' ? 'scale-110' : ''}`} />
+            <span>Cards ({activeAccountCount})</span>
           </button>
 
           <button
             id="tab-btn-fees"
             onClick={() => setActiveTab('fees')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 ${
               activeTab === 'fees'
-                ? 'bg-neutral-900 text-white shadow-xs'
+                ? 'bg-neutral-900 text-white shadow-xs -translate-y-px'
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             }`}
           >
+            <ReceiptText className={`w-3.5 h-3.5 transition-transform duration-200 ${activeTab === 'fees' ? 'scale-110' : ''}`} />
             <span>Annual Fee: ${totalAnnualFee.toLocaleString()}</span>
             {urgentFeeCount > 0 && (
               <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
@@ -224,25 +230,27 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="tab-btn-history"
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 ${
               activeTab === 'history'
-                ? 'bg-neutral-900 text-white shadow-xs'
+                ? 'bg-neutral-900 text-white shadow-xs -translate-y-px'
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             }`}
           >
+            <GitBranch className={`w-3.5 h-3.5 transition-transform duration-200 ${activeTab === 'history' ? 'scale-110' : ''}`} />
             <span>Timelines</span>
           </button>
 
           <button
             id="tab-btn-rules"
             onClick={() => setActiveTab('rules')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 ${
               activeTab === 'rules'
-                ? 'bg-neutral-900 text-white shadow-xs'
+                ? 'bg-neutral-900 text-white shadow-xs -translate-y-px'
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             }`}
             title={`Chase 5/24: ${isChaseEligible ? 'eligible' : 'over limit'} (${fiveTwentyFour.count}/24)`}
           >
+            <ShieldCheck className={`w-3.5 h-3.5 transition-transform duration-200 ${activeTab === 'rules' ? 'scale-110' : ''}`} />
             <span>Apply &amp; Bonus Eligibility</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-xs ring-1 ${
               isChaseEligible
@@ -267,11 +275,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setActiveTab('cards');
                   setMobileMenuOpen(false);
                 }}
-                className={`px-3 py-2 rounded-lg text-left ${
+                className={`px-3 py-2 rounded-lg text-left flex items-center gap-2 ${
                   activeTab === 'cards' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
-                Cards ({activeAccountCount})
+                <LayoutGrid className="w-4 h-4" />
+                <span>Cards ({activeAccountCount})</span>
               </button>
 
               <button
@@ -283,7 +292,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   activeTab === 'fees' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
-                <span>Annual Fee: ${totalAnnualFee.toLocaleString()}</span>
+                <span className="flex items-center gap-2"><ReceiptText className="w-4 h-4" />Annual Fee: ${totalAnnualFee.toLocaleString()}</span>
                 {urgentFeeCount > 0 && (
                   <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px]">
                     {urgentFeeCount} due soon
@@ -296,11 +305,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setActiveTab('history');
                   setMobileMenuOpen(false);
                 }}
-                className={`px-3 py-2 rounded-lg text-left ${
+                className={`px-3 py-2 rounded-lg text-left flex items-center gap-2 ${
                   activeTab === 'history' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
-                Timelines
+                <GitBranch className="w-4 h-4" />
+                <span>Timelines</span>
               </button>
 
               <button
@@ -312,7 +322,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   activeTab === 'rules' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
-                Apply &amp; Bonus Eligibility
+                <span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4" />Apply &amp; Bonus Eligibility</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-xs ${
                   isChaseEligible
                     ? activeTab === 'rules' ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
