@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { CreditCard, FiveTwentyFourStatus } from '../types';
 import {
   CreditCard as CardIcon,
-  DollarSign,
-  ShieldCheck,
-  ShieldAlert,
   Clock,
   Plus,
   ArrowRightLeft,
@@ -36,6 +33,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
+  cards,
   fiveTwentyFour,
   totalAnnualFee,
   urgentFeeCount,
@@ -49,6 +47,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const activeAccountCount = cards.filter((card) => card.status === 'active').length;
+  const isChaseEligible = fiveTwentyFour.count < 5;
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-neutral-200">
@@ -69,41 +69,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Quick Glances: 5/24 & Annual Fee (Desktop) */}
+          {/* Time-sensitive annual-fee notification (Desktop) */}
           <div className="hidden md:flex items-center gap-2.5">
-            {/* 5/24 Chip */}
-            <button
-              onClick={() => setActiveTab('rules')}
-              className={`flex h-12 items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                fiveTwentyFour.count >= 5
-                  ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
-                  : fiveTwentyFour.count === 4
-                  ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                  : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-              }`}
-              title="Click to view 5/24 drop-off schedule"
-            >
-              {fiveTwentyFour.count >= 5 ? (
-                <ShieldAlert className="w-3.5 h-3.5" />
-              ) : (
-                <ShieldCheck className="w-3.5 h-3.5" />
-              )}
-              <span className="flex flex-col leading-tight whitespace-nowrap text-left">
-                <span>{fiveTwentyFour.count}/24</span>
-                <span>{fiveTwentyFour.count >= 5 ? 'Over limit' : `${5 - fiveTwentyFour.count} slots`}</span>
-              </span>
-            </button>
-
-            {/* Total Fees Chip */}
-            <button
-              onClick={() => setActiveTab('fees')}
-              className="flex h-12 items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-neutral-100 border border-neutral-200 text-neutral-800 hover:bg-neutral-200 transition-all"
-              title="Click to view Annual Fee Summary"
-            >
-              <DollarSign className="w-3.5 h-3.5 text-neutral-600" />
-              <span>${totalAnnualFee.toLocaleString()}/yr</span>
-            </button>
-
             {/* Urgent fee notification */}
             {urgentFeeCount > 0 && (
               <button
@@ -236,7 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             }`}
           >
-            Cards
+            Cards ({activeAccountCount})
           </button>
 
           <button
@@ -248,7 +215,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             }`}
           >
-            <span>Annual Fee</span>
+            <span>Annual Fee: ${totalAnnualFee.toLocaleString()}</span>
             {urgentFeeCount > 0 && (
               <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
             )}
@@ -274,13 +241,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ? 'bg-neutral-900 text-white shadow-xs'
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             }`}
+            title={`Chase 5/24: ${isChaseEligible ? 'eligible' : 'over limit'} (${fiveTwentyFour.count}/24)`}
           >
             <span>Apply &amp; Bonus Eligibility</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                activeTab === 'rules' ? 'bg-white/20 text-white' : 'bg-neutral-200 text-neutral-800'
-              }`}
-            >
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-xs ring-1 ${
+              isChaseEligible
+                ? activeTab === 'rules'
+                  ? 'bg-emerald-400/20 text-emerald-100 ring-emerald-300/40'
+                  : 'bg-emerald-100 text-emerald-800 ring-emerald-200'
+                : activeTab === 'rules'
+                ? 'bg-rose-400/20 text-rose-100 ring-rose-300/40'
+                : 'bg-rose-100 text-rose-800 ring-rose-200'
+            }`}>
               {fiveTwentyFour.count}/24
             </span>
           </button>
@@ -289,15 +261,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="md:hidden py-3 border-t border-neutral-200 space-y-2">
-            <div className="grid grid-cols-2 gap-2 pb-2 border-b border-neutral-100 text-xs">
-              <div className="p-2.5 rounded-xl bg-neutral-100 text-neutral-800 font-semibold">
-                5/24: {fiveTwentyFour.count}/24
-              </div>
-              <div className="p-2.5 rounded-xl bg-neutral-100 text-neutral-800 font-semibold">
-                Fees: ${totalAnnualFee}/yr
-              </div>
-            </div>
-
             <div className="flex flex-col space-y-1 text-xs font-medium">
               <button
                 onClick={() => {
@@ -308,7 +271,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   activeTab === 'cards' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
-                Cards
+                Cards ({activeAccountCount})
               </button>
 
               <button
@@ -320,7 +283,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   activeTab === 'fees' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
-                <span>Annual Fee</span>
+                <span>Annual Fee: ${totalAnnualFee.toLocaleString()}</span>
                 {urgentFeeCount > 0 && (
                   <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px]">
                     {urgentFeeCount} due soon
@@ -345,11 +308,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setActiveTab('rules');
                   setMobileMenuOpen(false);
                 }}
-                className={`px-3 py-2 rounded-lg text-left ${
+                className={`px-3 py-2 rounded-lg text-left flex items-center justify-between ${
                   activeTab === 'rules' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
                 Apply &amp; Bonus Eligibility
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-xs ${
+                  isChaseEligible
+                    ? activeTab === 'rules' ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
+                    : activeTab === 'rules' ? 'bg-rose-400/20 text-rose-100' : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {fiveTwentyFour.count}/24
+                </span>
               </button>
 
               <button

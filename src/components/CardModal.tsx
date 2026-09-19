@@ -5,7 +5,7 @@ import { toDateString, getTodayDate } from '../utils/dateUtils';
 import { BankLogo } from './BankLogo';
 import { CardAutocompleteInput } from './CardAutocompleteInput';
 import { CardVisual } from './CardVisual';
-import { BANK_GRADIENTS } from '../data/cardCatalog';
+import { BANK_GRADIENTS, findCatalogCard } from '../data/cardCatalog';
 
 interface CardModalProps {
   isOpen: boolean;
@@ -116,6 +116,9 @@ export const CardModal: React.FC<CardModalProps> = ({
 
   useEffect(() => {
     if (cardToEdit) {
+      const currentProductCatalog = (cardToEdit.productChanges || []).length > 0
+        ? findCatalogCard(cardToEdit.currentName, cardToEdit.bank)
+        : undefined;
       setBank(cardToEdit.bank);
       setCardName(cardToEdit.currentName);
       setNickname(cardToEdit.nickname || '');
@@ -127,8 +130,8 @@ export const CardModal: React.FC<CardModalProps> = ({
       setCreditLimit(cardToEdit.creditLimit ? String(cardToEdit.creditLimit) : '');
       setFeeRenewalDate(cardToEdit.feeRenewalDate || '');
       setNotes(cardToEdit.notes || '');
-      setImageUrl(cardToEdit.imageUrl || '');
-      setCardColor(cardToEdit.cardColor || '');
+      setImageUrl(currentProductCatalog?.imageUrl || cardToEdit.imageUrl || '');
+      setCardColor(currentProductCatalog?.cardColor || cardToEdit.cardColor || '');
       setPrefillNotice(null);
     } else {
       // Reset form

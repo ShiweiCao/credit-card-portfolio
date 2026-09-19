@@ -3,6 +3,7 @@ import { CreditCard, Bank, CardType } from '../types';
 import { formatDate, getNextRenewalDate, getDaysUntil, isWithinPastMonths, isWithinPastDays } from '../utils/dateUtils';
 import { CardVisual } from './CardVisual';
 import { BankLogo, NetworkLogo } from './BankLogo';
+import { findCatalogCard } from '../data/cardCatalog';
 import {
   CreditCard as CardIcon,
   Search,
@@ -20,7 +21,13 @@ import {
   ArrowDownUp,
 } from 'lucide-react';
 
-type SortOption = 'openDate' | 'annualFeeHighToLow' | 'annualFeeLowToHigh' | 'nextAnnualFee' | 'bank';
+type SortOption =
+  | 'openDate'
+  | 'lastActivity'
+  | 'annualFeeHighToLow'
+  | 'annualFeeLowToHigh'
+  | 'nextAnnualFee'
+  | 'bank';
 
 interface CardListProps {
   cards: CreditCard[];
@@ -45,7 +52,7 @@ export const CardList: React.FC<CardListProps> = ({
   const [selectedBank, setSelectedBank] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [showClosedAccounts, setShowClosedAccounts] = useState(false);
-  const [sortOption, setSortOption] = useState<SortOption>('openDate');
+  const [sortOption, setSortOption] = useState<SortOption>('lastActivity');
 
   const filteredCards = cards.filter((card) => {
     // Search
@@ -71,6 +78,11 @@ export const CardList: React.FC<CardListProps> = ({
   });
 
   const allBanks = Array.from(new Set(cards.map((c) => c.bank)));
+  const getLastActivityDate = (card: CreditCard) =>
+    card.productChanges.reduce(
+      (latestDate, change) => (change.date > latestDate ? change.date : latestDate),
+      card.openDate
+    );
   const sortedCards = [...filteredCards]
     // A renewal date only has meaning for cards that actually charge an annual fee.
     .filter((card) => sortOption !== 'nextAnnualFee' || card.annualFee > 0)
@@ -84,6 +96,11 @@ export const CardList: React.FC<CardListProps> = ({
           return (
             getDaysUntil(getNextRenewalDate(a.openDate, a.feeRenewalDate)) -
               getDaysUntil(getNextRenewalDate(b.openDate, b.feeRenewalDate)) ||
+            a.currentName.localeCompare(b.currentName)
+          );
+        case 'lastActivity':
+          return (
+            getLastActivityDate(b).localeCompare(getLastActivityDate(a)) ||
             a.currentName.localeCompare(b.currentName)
           );
         case 'bank':
@@ -124,6 +141,7 @@ export const CardList: React.FC<CardListProps> = ({
                 aria-label="Sort cards"
               >
                 <option value="openDate">Open date (newest)</option>
+                <option value="lastActivity">Last activity (newest)</option>
                 <option value="annualFeeHighToLow">Annual fee (high to low)</option>
                 <option value="annualFeeLowToHigh">Annual fee (low to high)</option>
                 <option value="nextAnnualFee">Next annual fee due</option>
@@ -144,6 +162,12 @@ export const CardList: React.FC<CardListProps> = ({
         {sortOption === 'nextAnnualFee' && (
           <div className="-mt-1 flex items-center gap-1.5 text-[11px] font-medium text-indigo-700">
             <ArrowDownUp className="w-3 h-3" /> Showing cards with an annual fee only
+          </div>
+        )}
+
+        {sortOption === 'lastActivity' && (
+          <div className="-mt-1 flex items-center gap-1.5 text-[11px] font-medium text-indigo-700">
+            <History className="w-3 h-3" /> Uses the latest product-switch date, or the account open date when no switch is recorded
           </div>
         )}
 
@@ -245,6 +269,15 @@ export const CardList: React.FC<CardListProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {sortedCards.map((card) => {
             const hasProductChange = (card.productChanges || []).length > 0;
+            const currentProductCatalog = hasProductChange
+              ? findCatalogCard(card.currentName, card.bank)
+              : undefined;
+            const displayImageUrl = currentProductCatalog?.imageUrl || card.imageUrl;
+            const displayCardColor = currentProductCatalog?.cardColor || card.cardColor;
+            const displayNetwork = currentProductCatalog?.network || card.network;
+            const currentProductStartDate = hasProductChange
+              ? getLastActivityDate(card)
+              : card.openDate;
             const nextRenewal = getNextRenewalDate(card.openDate, card.feeRenewalDate);
             const daysUntilFee = getDaysUntil(nextRenewal);
             const countsFor524 = card.cardType === 'personal' && isWithinPastMonths(card.openDate, 24);
@@ -280,11 +313,11 @@ export const CardList: React.FC<CardListProps> = ({
                 }`}
               >
                 {/* Visual Card Top Header */}
-                <div className={`p-4 bg-gradient-to-r ${card.cardColor || 'from-neutral-800 to-neutral-950'} text-white relative overflow-hidden`}>
-                  {card.imageUrl && (
+                <div className={`p-4 bg-gradient-to-r ${displayCardColor || 'from-neutral-800 to-neutral-950'} text-white relative overflow-hidden`}>
+                  {displayImageUrl && (
                     <div className="absolute -right-4 -bottom-4 w-32 h-20 opacity-15 pointer-events-none rotate-6">
                       <img
-                        src={card.imageUrl}
+                        src={displayImageUrl}
                         alt=""
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -301,7 +334,7 @@ export const CardList: React.FC<CardListProps> = ({
                         {card.bank}
                       </span>
                     </div>
-                    <NetworkLogo network={card.network} size="xs" variant="badge" />
+                    <NetworkLogo network={displayNetwork} size="xs" variant="badge" />
                   </div>
 
                   <div className="relative z-10 mt-3 flex items-center gap-3">
@@ -309,9 +342,9 @@ export const CardList: React.FC<CardListProps> = ({
                       variant="thumb"
                       name={card.nickname || card.currentName}
                       bank={card.bank}
-                      network={card.network}
-                      imageUrl={card.imageUrl}
-                      cardColor={card.cardColor}
+                      network={displayNetwork}
+                      imageUrl={displayImageUrl}
+                      cardColor={displayCardColor}
                       className="w-12 h-8"
                     />
                     <div className="min-w-0 flex-1">
@@ -325,7 +358,7 @@ export const CardList: React.FC<CardListProps> = ({
                   </div>
 
                   <div className="relative z-10 mt-4 flex items-center justify-between text-xs text-white/90 pt-2 border-t border-white/15">
-                    <span>Opened: {formatDate(card.openDate)}</span>
+                    <span>Since: {formatDate(currentProductStartDate)}</span>
                     <span className="font-bold text-sm">
                       {card.annualFee > 0 ? `$${card.annualFee}/yr` : '$0 Fee'}
                     </span>

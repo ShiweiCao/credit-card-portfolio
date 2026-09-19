@@ -9,6 +9,7 @@ import {
   Layers,
   Plus,
   Trash2,
+  Pencil,
   Building2,
   Calendar,
   Filter,
@@ -22,6 +23,7 @@ import {
 interface ProductChangeHistoryProps {
   cards: CreditCard[];
   onOpenProductChangeModal: (cardId?: string) => void;
+  onEditProductChange: (cardId: string, change: ProductChange) => void;
   onDeleteProductChange: (cardId: string, changeId: string) => void;
   selectedCardId?: string;
 }
@@ -29,6 +31,7 @@ interface ProductChangeHistoryProps {
 export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
   cards,
   onOpenProductChangeModal,
+  onEditProductChange,
   onDeleteProductChange,
   selectedCardId,
 }) => {
@@ -337,6 +340,7 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
                   key={card.id}
                   card={card}
                   onOpenProductChangeModal={onOpenProductChangeModal}
+                  onEditProductChange={onEditProductChange}
                   onDeleteProductChange={onDeleteProductChange}
                   initiallyExpanded={true}
                 />
@@ -397,6 +401,14 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
                         >
                           {change.changeType}
                         </span>
+
+                        <button
+                          onClick={() => onEditProductChange(card.id, change)}
+                          className="p-1 text-neutral-400 hover:text-indigo-600 rounded-md transition-colors"
+                          title="Edit product change"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
 
                         <button
                           onClick={() => onDeleteProductChange(card.id, change.id)}

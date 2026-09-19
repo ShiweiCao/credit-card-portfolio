@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, ProductChange, FiveTwentyFourStatus } from './types';
 import { INITIAL_CARDS, SAMPLE_CARDS } from './data/initialCards';
+import { findCatalogCard } from './data/cardCatalog';
 import { calculateChase524 } from './utils/rulesEngine';
 import { getNextRenewalDate, getDaysUntil } from './utils/dateUtils';
 import { Navbar } from './components/Navbar';
@@ -41,6 +42,7 @@ export default function App() {
 
   const [isPCModalOpen, setIsPCModalOpen] = useState(false);
   const [selectedCardIdForPC, setSelectedCardIdForPC] = useState<string | undefined>(undefined);
+  const [productChangeToEdit, setProductChangeToEdit] = useState<ProductChange | null>(null);
   const [cardForTimelineModal, setCardForTimelineModal] = useState<CreditCard | null>(null);
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
 
@@ -108,10 +110,14 @@ export default function App() {
     setCards((prev) =>
       prev.map((card) => {
         if (card.id === cardId) {
+          const destinationProduct = findCatalogCard(change.toProductName, card.bank);
           return {
             ...card,
             currentName: change.toProductName,
             annualFee: change.toAnnualFee,
+            network: destinationProduct?.network || card.network,
+            cardColor: destinationProduct?.cardColor || card.cardColor,
+            imageUrl: destinationProduct?.imageUrl || card.imageUrl,
             productChanges: [change, ...(card.productChanges || [])],
           };
         }
@@ -130,11 +136,16 @@ export default function App() {
         if (card.id === cardId) {
           const updatedChanges = (card.productChanges || []).filter((pc) => pc.id !== changeId);
           // If we deleted the latest product change, revert currentName to previous or original
-          const latestChange = updatedChanges[0];
+          const latestChange = [...updatedChanges].sort((a, b) => b.date.localeCompare(a.date))[0];
+          const currentName = latestChange ? latestChange.toProductName : card.originalName;
+          const currentProduct = findCatalogCard(currentName, card.bank);
           return {
             ...card,
-            currentName: latestChange ? latestChange.toProductName : card.originalName,
+            currentName,
             annualFee: latestChange ? latestChange.toAnnualFee : card.annualFee,
+            network: currentProduct?.network || card.network,
+            cardColor: currentProduct?.cardColor || card.cardColor,
+            imageUrl: currentProduct?.imageUrl || card.imageUrl,
             productChanges: updatedChanges,
           };
         }
@@ -142,6 +153,41 @@ export default function App() {
       })
     );
     showToast('Product change record removed', 'info');
+  };
+
+  // Edit an existing product change and keep later changes linked to the updated product.
+  const handleUpdateProductChange = (cardId: string, updatedChange: ProductChange) => {
+    setCards((prev) =>
+      prev.map((card) => {
+        if (card.id !== cardId) return card;
+
+        const chronologicalChanges = (card.productChanges || [])
+          .map((change) => (change.id === updatedChange.id ? updatedChange : change))
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .map((change, index, changes) =>
+            index === 0
+              ? change
+              : {
+                  ...change,
+                  fromProductName: changes[index - 1].toProductName,
+                  fromAnnualFee: changes[index - 1].toAnnualFee,
+                }
+          );
+        const latestChange = chronologicalChanges[chronologicalChanges.length - 1];
+        const currentProduct = findCatalogCard(latestChange.toProductName, card.bank);
+
+        return {
+          ...card,
+          currentName: latestChange.toProductName,
+          annualFee: latestChange.toAnnualFee,
+          network: currentProduct?.network || card.network,
+          cardColor: currentProduct?.cardColor || card.cardColor,
+          imageUrl: currentProduct?.imageUrl || card.imageUrl,
+          productChanges: chronologicalChanges,
+        };
+      })
+    );
+    showToast(`Updated product change to "${updatedChange.toProductName}"`);
   };
 
   // Open modals
@@ -155,8 +201,9 @@ export default function App() {
     setIsCardModalOpen(true);
   };
 
-  const handleOpenProductChange = (cardId?: string) => {
+  const handleOpenProductChange = (cardId?: string, change?: ProductChange) => {
     setSelectedCardIdForPC(cardId);
+    setProductChangeToEdit(change || null);
     setIsPCModalOpen(true);
   };
 
@@ -303,6 +350,7 @@ export default function App() {
           <ProductChangeHistory
             cards={cards}
             onOpenProductChangeModal={(cardId) => handleOpenProductChange(cardId)}
+            onEditProductChange={(cardId, change) => handleOpenProductChange(cardId, change)}
             onDeleteProductChange={handleDeleteProductChange}
           />
         )}
@@ -330,7 +378,9 @@ export default function App() {
         onClose={() => setIsPCModalOpen(false)}
         cards={cards}
         selectedCardId={selectedCardIdForPC}
+        productChangeToEdit={productChangeToEdit}
         onSaveProductChange={handleSaveProductChange}
+        onUpdateProductChange={handleUpdateProductChange}
       />
 
       <LinkedInTimelineModal
@@ -339,6 +389,9 @@ export default function App() {
         card={cardForTimelineModal}
         onOpenProductChangeModal={(cardId) => {
           handleOpenProductChange(cardId);
+        }}
+        onEditProductChange={(cardId, change) => {
+          handleOpenProductChange(cardId, change);
         }}
         onDeleteProductChange={handleDeleteProductChange}
       />

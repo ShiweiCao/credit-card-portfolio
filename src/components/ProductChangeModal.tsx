@@ -3,14 +3,17 @@ import { CreditCard, ProductChange, ChangeType } from '../types';
 import { X, ArrowRightLeft, TrendingDown, TrendingUp, Sparkles } from 'lucide-react';
 import { toDateString, getTodayDate } from '../utils/dateUtils';
 import { CardVisual } from './CardVisual';
-import { BankLogo } from './BankLogo';
+import { findCatalogCard } from '../data/cardCatalog';
+import { CardAutocompleteInput } from './CardAutocompleteInput';
 
 interface ProductChangeModalProps {
   isOpen: boolean;
   onClose: () => void;
   cards: CreditCard[];
   selectedCardId?: string;
+  productChangeToEdit?: ProductChange | null;
   onSaveProductChange: (cardId: string, change: ProductChange) => void;
+  onUpdateProductChange: (cardId: string, change: ProductChange) => void;
 }
 
 export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
@@ -18,7 +21,9 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
   onClose,
   cards,
   selectedCardId,
+  productChangeToEdit,
   onSaveProductChange,
+  onUpdateProductChange,
 }) => {
   const activeCards = cards.filter((c) => c.status === 'active');
   const [cardId, setCardId] = useState<string>('');
@@ -28,7 +33,11 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
   const [changeType, setChangeType] = useState<ChangeType>('downgrade');
   const [notes, setNotes] = useState('');
 
-  const selectedCard = activeCards.find((c) => c.id === cardId);
+  const isEditing = Boolean(productChangeToEdit);
+  const selectedCard = (isEditing ? cards : activeCards).find((c) => c.id === cardId);
+  const selectedProductCatalog = selectedCard && (selectedCard.productChanges || []).length > 0
+    ? findCatalogCard(selectedCard.currentName, selectedCard.bank)
+    : undefined;
 
   useEffect(() => {
     if (selectedCardId && activeCards.some((c) => c.id === selectedCardId)) {
@@ -39,7 +48,18 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
   }, [selectedCardId, activeCards, cardId]);
 
   useEffect(() => {
-    if (selectedCard) {
+    if (isOpen && productChangeToEdit) {
+      setCardId(productChangeToEdit.cardId);
+      setToProductName(productChangeToEdit.toProductName);
+      setChangeDate(productChangeToEdit.date);
+      setToAnnualFee(productChangeToEdit.toAnnualFee);
+      setChangeType(productChangeToEdit.changeType);
+      setNotes(productChangeToEdit.notes || '');
+    }
+  }, [isOpen, productChangeToEdit]);
+
+  useEffect(() => {
+    if (selectedCard && !productChangeToEdit) {
       // If current annual fee is > 0, default to 0 for downgrade
       if (selectedCard.annualFee > 0) {
         setToAnnualFee(0);
@@ -49,7 +69,7 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
         setChangeType('lateral');
       }
     }
-  }, [selectedCard]);
+  }, [selectedCard, productChangeToEdit]);
 
   if (!isOpen) return null;
 
@@ -58,18 +78,22 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
     if (!selectedCard || !toProductName.trim()) return;
 
     const change: ProductChange = {
-      id: `pc-${Date.now()}`,
-      cardId: selectedCard.id,
+      id: productChangeToEdit?.id || `pc-${Date.now()}`,
+      cardId: productChangeToEdit?.cardId || selectedCard.id,
       date: changeDate,
-      fromProductName: selectedCard.currentName,
+      fromProductName: productChangeToEdit?.fromProductName || selectedCard.currentName,
       toProductName: toProductName.trim(),
-      fromAnnualFee: selectedCard.annualFee,
+      fromAnnualFee: productChangeToEdit?.fromAnnualFee ?? selectedCard.annualFee,
       toAnnualFee: Number(toAnnualFee) || 0,
       changeType,
       notes: notes.trim() || undefined,
     };
 
-    onSaveProductChange(selectedCard.id, change);
+    if (productChangeToEdit) {
+      onUpdateProductChange(selectedCard.id, change);
+    } else {
+      onSaveProductChange(selectedCard.id, change);
+    }
     // Reset and close
     setToProductName('');
     setNotes('');
@@ -95,10 +119,10 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-neutral-900">
-                Record Card Product Change (Switch)
+                {isEditing ? 'Edit Card Product Change' : 'Record Card Product Change (Switch)'}
               </h2>
               <p className="text-xs text-neutral-500">
-                e.g. Downgrade Chase Sapphire to Chase Freedom without opening a new account
+                {isEditing ? 'Update the details of this recorded product change.' : 'e.g. Downgrade Chase Sapphire to Chase Freedom without opening a new account'}
               </p>
             </div>
           </div>
@@ -122,6 +146,7 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
               id="pc-card-select"
               value={cardId}
               onChange={(e) => setCardId(e.target.value)}
+              disabled={isEditing}
               className="w-full px-3.5 py-2.5 bg-white border border-neutral-300 rounded-xl text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
               required
             >
@@ -141,9 +166,9 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
                   variant="thumb"
                   name={selectedCard.nickname || selectedCard.currentName}
                   bank={selectedCard.bank}
-                  network={selectedCard.network}
-                  imageUrl={selectedCard.imageUrl}
-                  cardColor={selectedCard.cardColor}
+                  network={selectedProductCatalog?.network || selectedCard.network}
+                  imageUrl={selectedProductCatalog?.imageUrl || selectedCard.imageUrl}
+                  cardColor={selectedProductCatalog?.cardColor || selectedCard.cardColor}
                 />
                 <div>
                   <span className="text-neutral-500 block text-[11px]">Current Product</span>
@@ -169,37 +194,21 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
             <label className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider">
               Switched To (New Product Name) *
             </label>
-            <input
+            <CardAutocompleteInput
               id="pc-new-product-name"
-              type="text"
               value={toProductName}
-              onChange={(e) => setToProductName(e.target.value)}
+              onChange={setToProductName}
+              onSelectCard={(catalogCard) => {
+                setToProductName(catalogCard.name);
+                setToAnnualFee(catalogCard.annualFee);
+              }}
+              bankFilter={selectedCard?.bank}
               placeholder="e.g. Chase Freedom Unlimited, Chase Freedom Flex"
-              className="w-full px-3.5 py-2.5 bg-white border border-neutral-300 rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
               required
             />
-            {selectedCard?.bank === 'Chase' && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                <span className="text-[11px] text-neutral-500 mr-1 self-center">Popular Chase PCs:</span>
-                {['Chase Freedom Unlimited', 'Chase Freedom Flex', 'Chase Sapphire Preferred', 'Chase Sapphire Reserve'].map(
-                  (name) => (
-                    <button
-                      key={name}
-                      type="button"
-                      onClick={() => {
-                        setToProductName(name);
-                        if (name.includes('Freedom')) setToAnnualFee(0);
-                        else if (name.includes('Preferred')) setToAnnualFee(95);
-                        else if (name.includes('Reserve')) setToAnnualFee(550);
-                      }}
-                      className="text-[11px] px-2 py-0.5 rounded-md bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors"
-                    >
-                      {name}
-                    </button>
-                  )
-                )}
-              </div>
-            )}
+            <p className="mt-1 text-[11px] text-neutral-500">
+              Choose a catalog card to fill its annual fee automatically, or enter a custom product name.
+            </p>
           </div>
 
           {/* Date & New Fee */}
@@ -329,7 +338,7 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
               type="submit"
               className="px-6 py-2.5 rounded-xl bg-indigo-900 text-white text-sm font-medium hover:bg-indigo-800 transition-colors shadow-sm"
             >
-              Confirm Product Change
+              {isEditing ? 'Save Product Change' : 'Confirm Product Change'}
             </button>
           </div>
         </form>

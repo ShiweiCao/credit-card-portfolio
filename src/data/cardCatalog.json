@@ -710,8 +710,32 @@
     "network": "Visa",
     "cardColor": "from-red-800 via-rose-900 to-slate-900",
     "aliases": ["ccr", "customized cash", "bofa cash"],
-    "eligibleDowngrades": ["Bank of America Travel Rewards"],
+    "eligibleDowngrades": ["Bank of America Travel Rewards", "Bank of America Unlimited Cash Rewards"],
     "perksSummary": "3% cash back in choice category, 2% at grocery stores & wholesale clubs (up to 5.25% with Preferred Rewards)"
+  },
+  {
+    "id": "bofa-travel-rewards",
+    "name": "Bank of America Travel Rewards",
+    "bank": "Bank of America",
+    "annualFee": 0,
+    "cardType": "personal",
+    "network": "Visa",
+    "cardColor": "from-sky-800 via-blue-900 to-slate-950",
+    "imageUrl": "https://www.bankofamerica.com/content/images/ContextualSiteGraphics/CreditCardArt/en_US/Approved_PCM/8blm_trvsigcm_v_250x158.png",
+    "aliases": ["travel rewards", "bofa travel", "boa travel"],
+    "perksSummary": "1.5 points per dollar on purchases, 3 points per dollar through BofA Travel, and no foreign transaction fee"
+  },
+  {
+    "id": "bofa-unlimited-cash-rewards",
+    "name": "Bank of America Unlimited Cash Rewards",
+    "bank": "Bank of America",
+    "annualFee": 0,
+    "cardType": "personal",
+    "network": "Visa",
+    "cardColor": "from-sky-700 via-blue-900 to-slate-950",
+    "imageUrl": "https://www.bankofamerica.com/content/images/ContextualSiteGraphics/CreditCardArt/en_US/Approved_PCM/bofa_cshsigcm_v_sky_lto_300x188.png",
+    "aliases": ["unlimited cash", "unlimited cash rewards", "bofa unlimited", "boa unlimited"],
+    "perksSummary": "Unlimited 1.5% cash back on every purchase, with no annual fee"
   },
   {
     "id": "bofa-premium-rewards",
@@ -726,15 +750,16 @@
     "perksSummary": "$100 airline incidental credit, 2x points on travel & dining, 1.5x on everything else"
   },
   {
-    "id": "bofa-alaska-airlines",
-    "name": "Alaska Airlines Visa Signature",
+    "id": "bofa-atmos-rewards-ascent",
+    "name": "Atmos Rewards Ascent Visa Signature",
     "bank": "Bank of America",
     "annualFee": 95,
     "cardType": "personal",
     "network": "Visa",
     "cardColor": "from-emerald-950 via-teal-950 to-slate-900",
-    "aliases": ["alaska visa", "alaska card"],
-    "perksSummary": "Famous Alaska's Famous Companion Fare from $122, free checked bag for you and up to 6 guests"
+    "imageUrl": "https://www.bankofamerica.com/content/images/ContextualSiteGraphics/CreditCardArt/en_US/Approved_PCM/1bbt_sigcm_v_atmos_ascent_250.png",
+    "aliases": ["Alaska Airlines Visa Signature", "alaska visa", "alaska card", "atmos ascent"],
+    "perksSummary": "$99 Companion Fare after $6,000 annual spend, free checked bag and preferred boarding for you and up to 6 guests"
   },
   {
     "id": "discover-it-cash-back",

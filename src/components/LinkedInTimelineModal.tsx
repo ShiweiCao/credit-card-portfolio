@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard } from '../types';
+import { CreditCard, ProductChange } from '../types';
 import { LinkedInCardTimeline } from './LinkedInCardTimeline';
 import { X, Sparkles } from 'lucide-react';
 
@@ -8,6 +8,7 @@ interface LinkedInTimelineModalProps {
   onClose: () => void;
   card: CreditCard | null;
   onOpenProductChangeModal: (cardId: string) => void;
+  onEditProductChange?: (cardId: string, change: ProductChange) => void;
   onDeleteProductChange?: (cardId: string, changeId: string) => void;
 }
 
@@ -16,6 +17,7 @@ export const LinkedInTimelineModal: React.FC<LinkedInTimelineModalProps> = ({
   onClose,
   card,
   onOpenProductChangeModal,
+  onEditProductChange,
   onDeleteProductChange,
 }) => {
   if (!isOpen || !card) return null;
@@ -60,6 +62,10 @@ export const LinkedInTimelineModal: React.FC<LinkedInTimelineModalProps> = ({
             onOpenProductChangeModal={(id) => {
               onClose();
               onOpenProductChangeModal(id);
+            }}
+            onEditProductChange={(id, change) => {
+              onClose();
+              onEditProductChange?.(id, change);
             }}
             onDeleteProductChange={onDeleteProductChange}
             initiallyExpanded={true}

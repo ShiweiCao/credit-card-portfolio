@@ -20,6 +20,7 @@ import {
   Building2,
   Plus,
   Trash2,
+  Pencil,
   ChevronDown,
   ChevronUp,
   Info,
@@ -29,6 +30,7 @@ import {
 interface LinkedInCardTimelineProps {
   card: CreditCard;
   onOpenProductChangeModal: (cardId: string) => void;
+  onEditProductChange?: (cardId: string, change: ProductChange) => void;
   onDeleteProductChange?: (cardId: string, changeId: string) => void;
   initiallyExpanded?: boolean;
 }
@@ -130,6 +132,7 @@ const BANK_BRANDING: Record<
 export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
   card,
   onOpenProductChangeModal,
+  onEditProductChange,
   onDeleteProductChange,
   initiallyExpanded = true,
 }) => {
@@ -138,6 +141,12 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
   const branding = BANK_BRANDING[card.bank] || BANK_BRANDING.Other;
   const totalAccountDuration = formatLinkedInDuration(card.openDate, card.closedDate);
   const hasHistory = (card.productChanges || []).length > 0;
+  const currentProductCatalog = hasHistory
+    ? findCatalogCard(card.currentName, card.bank)
+    : undefined;
+  const currentProductImageUrl = currentProductCatalog?.imageUrl || card.imageUrl;
+  const currentProductCardColor = currentProductCatalog?.cardColor || card.cardColor;
+  const currentProductNetwork = currentProductCatalog?.network || card.network;
 
   // Chronologically sorted changes:
   // We want to reconstruct the full chronological stages from origin to present
@@ -289,9 +298,9 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
               variant="thumb"
               name={card.nickname || card.currentName}
               bank={card.bank}
-              network={card.network}
-              imageUrl={card.imageUrl}
-              cardColor={card.cardColor}
+              network={currentProductNetwork}
+              imageUrl={currentProductImageUrl}
+              cardColor={currentProductCardColor}
               className="w-16 h-10 shadow-xs shrink-0"
             />
 
@@ -398,9 +407,8 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
               const isDowngrade = stage.changeType === 'downgrade';
               const isUpgrade = stage.changeType === 'upgrade';
               const catalogProduct = findCatalogCard(stage.productName, card.bank);
-              const stageImageUrl = stage.isCurrent
-                ? card.imageUrl || catalogProduct?.imageUrl
-                : catalogProduct?.imageUrl;
+              const stageImageUrl = catalogProduct?.imageUrl || card.imageUrl;
+              const stageChange = card.productChanges?.find((change) => change.id === stage.id);
 
               return (
                 <div key={stage.id} className="relative group">
@@ -477,16 +485,30 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
                         )}
                       </div>
 
-                      {/* If intermediate product change, allow delete button */}
-                      {!stage.isOriginal && onDeleteProductChange && (
-                        <button
-                          onClick={() => onDeleteProductChange(card.id, stage.id)}
-                          className="opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-red-600 text-xs flex items-center gap-1 transition-opacity self-start"
-                          title="Remove this product change entry"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Delete entry</span>
-                        </button>
+                      {/* Product-change actions */}
+                      {!stage.isOriginal && stageChange && (onEditProductChange || onDeleteProductChange) && (
+                        <div className="flex items-center gap-2 self-start">
+                          {onEditProductChange && (
+                            <button
+                              onClick={() => onEditProductChange(card.id, stageChange)}
+                              className="text-neutral-400 hover:text-indigo-600 text-xs flex items-center gap-1"
+                              title="Edit this product change"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+                          )}
+                          {onDeleteProductChange && (
+                            <button
+                              onClick={() => onDeleteProductChange(card.id, stage.id)}
+                              className="text-neutral-400 hover:text-red-600 text-xs flex items-center gap-1"
+                              title="Remove this product change entry"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
 
