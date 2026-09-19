@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Cloud, Download, Eye, EyeOff, LoaderCircle, Save, Upload, X } from 'lucide-react';
+import { Cloud, Download, ExternalLink, Eye, EyeOff, LoaderCircle, Save, Upload, X } from 'lucide-react';
 import { GITHUB_GIST_ID_KEY, GITHUB_GIST_TOKEN_KEY } from '../utils/gistSync';
 
 interface CloudSyncModalProps {
@@ -75,6 +75,17 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose,
           <label className="block text-xs font-semibold text-neutral-700">
             Gist ID <span className="font-normal text-neutral-400">(optional until your first export)</span>
             <input value={gistId} onChange={(e) => setGistId(e.target.value)} placeholder="Paste an existing Gist ID to restore across browsers" className="mt-1.5 w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-700" />
+            {gistId.trim() && (
+              <a
+                href={`https://gist.github.com/${encodeURIComponent(gistId.trim())}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex items-center gap-1.5 font-medium text-indigo-700 hover:text-indigo-900 hover:underline underline-offset-2"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                View backup on GitHub Gist
+              </a>
+            )}
           </label>
 
           <button type="button" onClick={saveConnection} disabled={saving || action !== null} className="flex items-center gap-2 text-xs font-medium text-neutral-600 hover:text-neutral-900 disabled:opacity-50"><Save className="w-3.5 h-3.5" /> Save connection details</button>
