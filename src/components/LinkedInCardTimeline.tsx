@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CreditCard, ProductChange, Bank } from '../types';
 import { CardVisual } from './CardVisual';
 import { BankLogo } from './BankLogo';
+import { findCatalogCard } from '../data/cardCatalog';
 import {
   formatDate,
   formatMonthYear,
@@ -16,15 +17,12 @@ import {
   DollarSign,
   TrendingDown,
   TrendingUp,
-  Sparkles,
-  ShieldCheck,
   Building2,
   Plus,
   Trash2,
   ChevronDown,
   ChevronUp,
   Info,
-  Clock,
   ExternalLink,
 } from 'lucide-react';
 
@@ -157,6 +155,7 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
     startDate: string;
     endDate?: string;
     isPresent: boolean;
+    isCurrent: boolean;
     duration: string;
     dateRangeText: string;
     roleTag: string;
@@ -177,6 +176,7 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
       startDate: card.openDate,
       endDate: card.closedDate,
       isPresent: card.status === 'active',
+      isCurrent: true,
       duration: totalAccountDuration,
       dateRangeText: getLinkedInDateRange(
         card.openDate,
@@ -199,6 +199,7 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
       startDate: card.openDate,
       endDate: firstChange.date,
       isPresent: false,
+      isCurrent: false,
       duration: formatLinkedInDuration(card.openDate, firstChange.date),
       dateRangeText: getLinkedInDateRange(card.openDate, firstChange.date, false),
       roleTag: 'Original Product',
@@ -221,6 +222,7 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
       const startDate = change.date;
       const endDate = nextChange ? nextChange.date : card.closedDate;
       const isPresent = isLatest && card.status === 'active';
+      const isCurrent = isLatest;
       const feeDiff = change.toAnnualFee - change.fromAnnualFee;
 
       let roleTag = 'Product Change';
@@ -247,6 +249,7 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
         startDate,
         endDate,
         isPresent,
+        isCurrent,
         duration: formatLinkedInDuration(startDate, isPresent ? undefined : endDate),
         dateRangeText: getLinkedInDateRange(startDate, endDate, isPresent),
         roleTag,
@@ -380,32 +383,9 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
           </div>
         </div>
 
-        {/* 2. "What this card used to be" Clarity Callout */}
-        {hasHistory && (
-          <div className="mt-4 p-3.5 rounded-xl bg-neutral-50 border border-neutral-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-neutral-600 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                Card Evolution:
-              </span>
-              <span className="font-medium text-neutral-500 line-through">
-                {card.originalName} (${stages[0].annualFee}/yr)
-              </span>
-              <span className="text-neutral-400 font-bold">➔</span>
-              <span className="font-bold text-neutral-900 bg-white px-2.5 py-0.5 rounded-md border border-neutral-200 text-indigo-950" title={card.currentName}>
-                {card.nickname || card.currentName} (${card.annualFee}/yr)
-              </span>
-            </div>
-
-            <div className="text-neutral-500 text-[11px] flex items-center gap-1.5 shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Credit age & credit line remain continuous</span>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* 3. The Connected Vertical Timeline (LinkedIn Experience Roles) */}
+      {/* 2. The Connected Vertical Timeline (LinkedIn Experience Roles) */}
       {isExpanded && (
         <div className="p-5 sm:p-6 bg-white">
           <div className="relative pl-6 sm:pl-8 space-y-8">
@@ -417,26 +397,33 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
               const isLastInList = idx === reverseStages.length - 1; // The original opening
               const isDowngrade = stage.changeType === 'downgrade';
               const isUpgrade = stage.changeType === 'upgrade';
+              const catalogProduct = findCatalogCard(stage.productName, card.bank);
+              const stageImageUrl = stage.isCurrent
+                ? card.imageUrl || catalogProduct?.imageUrl
+                : catalogProduct?.imageUrl;
 
               return (
                 <div key={stage.id} className="relative group">
                   {/* Timeline Node Bullet */}
                   <div className="absolute -left-[23px] sm:-left-[27px] top-1 z-10">
-                    {stage.isPresent ? (
-                      // Active Present Node: Pulsing emerald / solid ring
-                      <div className="w-5 h-5 rounded-full bg-emerald-600 border-2 border-white ring-4 ring-emerald-100 flex items-center justify-center shadow-2xs">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                      </div>
-                    ) : stage.isOriginal ? (
-                      // Original Foundation Node
-                      <div className="w-5 h-5 rounded-full bg-neutral-800 border-2 border-white ring-4 ring-neutral-100 flex items-center justify-center shadow-2xs">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                      </div>
+                    {stage.isCurrent && card.status === 'active' ? (
+                      // Current product on an open account
+                      <div
+                        className="w-5 h-5 rounded-full bg-emerald-600 border-2 border-white ring-4 ring-emerald-100 shadow-2xs"
+                        title="Present product (open)"
+                      />
+                    ) : stage.isCurrent ? (
+                      // Current product on a closed account
+                      <div
+                        className="w-5 h-5 rounded-full bg-neutral-500 border-2 border-white ring-4 ring-neutral-100 shadow-2xs"
+                        title="Present product (closed)"
+                      />
                     ) : (
-                      // Intermediate Role Node
-                      <div className="w-5 h-5 rounded-full bg-white border-2 border-indigo-600 ring-4 ring-indigo-50 flex items-center justify-center shadow-2xs">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                      </div>
+                      // Historical product
+                      <div
+                        className="w-5 h-5 rounded-full bg-blue-600 border-2 border-white ring-4 ring-blue-50 shadow-2xs"
+                        title="History product"
+                      />
                     )}
                   </div>
 
@@ -445,20 +432,33 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
                     {/* Role Title & Badges */}
                     <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
                       <div className="flex items-center gap-2 flex-wrap">
+                        <CardVisual
+                          variant="thumb"
+                          name={stage.productName}
+                          bank={card.bank}
+                          network={catalogProduct?.network || card.network}
+                          imageUrl={stageImageUrl}
+                          cardColor={catalogProduct?.cardColor || card.cardColor}
+                          className="w-12 h-7"
+                        />
                         <h4 className="text-base sm:text-lg font-bold text-neutral-900 tracking-tight">
                           {stage.productName}
                         </h4>
 
                         {/* Status Pills */}
-                        {stage.isPresent && (
+                        {stage.isCurrent && card.status === 'active' && (
                           <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800">
-                            Present Product
+                            Present Product (Open)
                           </span>
                         )}
 
-                        {stage.isOriginal && (
+                        {stage.isCurrent && card.status === 'closed' ? (
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-neutral-200 text-neutral-700">
+                            Present Product (Closed)
+                          </span>
+                        ) : !stage.isCurrent && (
                           <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-neutral-100 text-neutral-700">
-                            Original Account Product
+                            History Product
                           </span>
                         )}
 
@@ -519,20 +519,6 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
                       <span>•</span>
                       <span>{card.network}</span>
                     </div>
-
-                    {/* Notes & Strategic Context (LinkedIn style role description) */}
-                    {Boolean(stage.notes && stage.notes.trim().length > 0) && (
-                      <div className="text-xs text-neutral-600 bg-neutral-50 p-3 rounded-xl border border-neutral-100 leading-relaxed">
-                        <span className="font-semibold text-neutral-800 mr-1">
-                          {stage.isPresent
-                            ? 'Current Product Notes:'
-                            : stage.isOriginal
-                            ? 'Opening Strategy:'
-                            : 'Switch Strategy:'}
-                        </span>
-                        {stage.notes.trim()}
-                      </div>
-                    )}
 
                     {/* Transition Bridge Indicator between stages */}
                     {!isLastInList && (

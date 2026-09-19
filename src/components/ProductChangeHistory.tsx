@@ -7,7 +7,6 @@ import {
   ArrowRightLeft,
   TrendingDown,
   Layers,
-  Sparkles,
   Plus,
   Trash2,
   Building2,
@@ -470,38 +469,6 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
         </div>
       )}
 
-      {/* 4. Strategic Guide: How Product Changes & Credit Lines Work */}
-      <div className="bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl p-6 text-white shadow-xs space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-amber-400" />
-          <h3 className="text-base font-bold text-white">
-            How Credit Card Product Changes Work (The "LinkedIn Role Switch" Strategy)
-          </h3>
-        </div>
-        <p className="text-xs text-neutral-300 leading-relaxed max-w-3xl">
-          When you product change (PC) a card instead of closing it, major banks (Chase, Amex, Citi, Capital One) keep your original credit line open and maintain your account age without triggering a hard pull.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
-          <div className="p-3 rounded-xl bg-white/10 border border-white/10">
-            <span className="font-bold text-white block mb-1">1. Same Credit Line</span>
-            <span className="text-neutral-300">
-              Your existing credit limit is transferred 100% to the new card product, preventing score drops from limit loss.
-            </span>
-          </div>
-          <div className="p-3 rounded-xl bg-white/10 border border-white/10">
-            <span className="font-bold text-white block mb-1">2. Same Account Age</span>
-            <span className="text-neutral-300">
-              Credit bureaus retain your initial open date, lengthening your average age of accounts (AAoA) forever.
-            </span>
-          </div>
-          <div className="p-3 rounded-xl bg-white/10 border border-white/10">
-            <span className="font-bold text-white block mb-1">3. 5/24 Neutral</span>
-            <span className="text-neutral-300">
-              Product changes do NOT count as a new account under Chase 5/24, because no new credit account was created.
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

@@ -190,6 +190,18 @@ export function evaluateBankRules(cards: CreditCard[]): BankRuleCheckResult[] {
     });
   }
 
+  results.push({
+    ruleName: 'Amex Welcome Offer Eligibility',
+    bank: 'American Express',
+    passed: true,
+    status: 'warning',
+    title: 'Check the current offer terms before applying',
+    description:
+      'Welcome-offer eligibility can depend on the card product, your prior card-member history, and the specific offer. This portfolio tracks cards, not bonus awards.',
+    actionRecommendation:
+      'Read the welcome-offer eligibility language on the application before submitting. Do not assume that closing or product-changing a card restores eligibility.',
+  });
+
   // 5. Amex 2/90 Velocity Rule (Max 2 credit cards in 90 days)
   const amexRecentCreditCards = cards.filter(
     (c) =>
@@ -222,6 +234,18 @@ export function evaluateBankRules(cards: CreditCard[]): BankRuleCheckResult[] {
       title: 'Capital One 1/6 Restriction Active',
       description: `You opened a Capital One card (${capOneRecent[0].currentName}) within the past 6 months. Capital One strictly allows only 1 card approval per 6 months.`,
       actionRecommendation: 'Wait until 6 full months have passed from your last Capital One approval.',
+    });
+  } else {
+    results.push({
+      ruleName: 'Capital One Application Spacing',
+      bank: 'Capital One',
+      passed: true,
+      status: 'eligible',
+      title: 'No recent Capital One account detected',
+      description:
+        'Your portfolio shows no Capital One card opened in the last 6 months. Use this as a planning signal, not an approval guarantee.',
+      actionRecommendation:
+        'Review Capital One pre-approval options and your current application history before applying.',
     });
   }
   if (capOneActivePersonal.length >= 2) {
@@ -280,7 +304,9 @@ export function evaluateBankRules(cards: CreditCard[]): BankRuleCheckResult[] {
 
   // 8. Bank of America 2/3/4 Rule
   // Max 2 cards per 2 months, 3 cards per 12 months, 4 cards per 24 months
-  const bofaCards = cards.filter((c) => c.bank === 'Bank of America');
+  const bofaCards = cards.filter(
+    (c) => c.bank === 'Bank of America' && c.cardType === 'personal'
+  );
   const bofa2m = bofaCards.filter((c) => isWithinPastMonths(c.openDate, 2)).length;
   const bofa12m = bofaCards.filter((c) => isWithinPastMonths(c.openDate, 12)).length;
   const bofa24m = bofaCards.filter((c) => isWithinPastMonths(c.openDate, 24)).length;

@@ -44,7 +44,7 @@ export const CardList: React.FC<CardListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBank, setSelectedBank] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('active');
+  const [showClosedAccounts, setShowClosedAccounts] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>('openDate');
 
   const filteredCards = cards.filter((card) => {
@@ -64,8 +64,8 @@ export const CardList: React.FC<CardListProps> = ({
     // Type
     const matchesType = selectedType === 'all' || card.cardType === selectedType;
 
-    // Status
-    const matchesStatus = selectedStatus === 'all' || card.status === selectedStatus;
+    // Closed accounts stay hidden unless explicitly included.
+    const matchesStatus = showClosedAccounts || card.status === 'active';
 
     return matchesSearch && matchesBank && matchesType && matchesStatus;
   });
@@ -180,25 +180,40 @@ export const CardList: React.FC<CardListProps> = ({
             <option value="business">Business Cards Only</option>
           </select>
 
-          {/* Status Select */}
-          <select
-            id="filter-status-select"
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-1.5 bg-neutral-100 border border-neutral-200 rounded-lg text-xs font-medium text-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+          <button
+            id="toggle-closed-accounts"
+            type="button"
+            role="switch"
+            aria-checked={showClosedAccounts}
+            onClick={() => setShowClosedAccounts((current) => !current)}
+            className={`inline-flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-900 ${
+              showClosedAccounts
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 shadow-2xs'
+                : 'border-neutral-200 bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+            }`}
           >
-            <option value="active">Active Cards</option>
-            <option value="closed">Closed Cards</option>
-            <option value="all">All Statuses</option>
-          </select>
+            <span
+              aria-hidden="true"
+              className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                showClosedAccounts ? 'bg-emerald-600' : 'bg-neutral-300'
+              }`}
+            >
+              <span
+                className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                  showClosedAccounts ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </span>
+            Show closed accounts
+          </button>
 
-          {(searchTerm || selectedBank !== 'all' || selectedType !== 'all' || selectedStatus !== 'active') && (
+          {(searchTerm || selectedBank !== 'all' || selectedType !== 'all' || showClosedAccounts) && (
             <button
               onClick={() => {
                 setSearchTerm('');
                 setSelectedBank('all');
                 setSelectedType('all');
-                setSelectedStatus('active');
+                setShowClosedAccounts(false);
               }}
               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium ml-auto"
             >

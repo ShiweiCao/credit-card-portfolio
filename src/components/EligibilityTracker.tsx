@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { CreditCard, FiveTwentyFourStatus, BankRuleCheckResult } from '../types';
+import { Bank, CreditCard, FiveTwentyFourStatus, BankRuleCheckResult } from '../types';
 import { calculateChase524, evaluateBankRules } from '../utils/rulesEngine';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, isWithinPastMonths } from '../utils/dateUtils';
 import { BankLogo } from './BankLogo';
+import { CardVisual } from './CardVisual';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -12,21 +13,75 @@ import {
   Info,
   Clock,
   HelpCircle,
-  Award,
   Sparkles,
   Search,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface EligibilityTrackerProps {
   cards: CreditCard[];
 }
 
+const BANK_SECTION_DESCRIPTIONS: Partial<Record<Bank, string>> = {
+  Chase: 'Application velocity and Sapphire welcome-offer restrictions.',
+  'American Express': 'Revolving-card capacity and welcome-offer eligibility reminders.',
+  'Bank of America': 'Consumer-card velocity limits tracked with the 2/3/4 rule.',
+  Citi: 'Application-velocity planning based on the 8/65 guideline.',
+  'Capital One': 'Application-spacing and personal-card portfolio considerations.',
+};
+
+interface BankRestrictionSectionProps {
+  bank: Bank;
+  title: string;
+  subtitle: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+const BankRestrictionSection: React.FC<BankRestrictionSectionProps> = ({
+  bank,
+  title,
+  subtitle,
+  isExpanded,
+  onToggle,
+  children,
+}) => (
+  <section className="bg-white rounded-2xl border border-neutral-200 shadow-xs overflow-hidden">
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={isExpanded}
+      className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-neutral-50 transition-colors"
+    >
+      <div className="flex items-center gap-3">
+        <BankLogo bank={bank} size="sm" variant="badge" />
+        <div>
+          <h2 className="text-base font-bold text-neutral-900">{title}</h2>
+          <p className="text-xs text-neutral-500 mt-0.5">{subtitle}</p>
+        </div>
+      </div>
+      <span className="p-1.5 rounded-lg text-neutral-500 bg-neutral-100">
+        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      </span>
+    </button>
+    {isExpanded && <div className="border-t border-neutral-200 p-5 space-y-5">{children}</div>}
+  </section>
+);
+
 export const EligibilityTracker: React.FC<EligibilityTrackerProps> = ({ cards }) => {
   const fiveTwentyFour: FiveTwentyFourStatus = calculateChase524(cards);
   const ruleResults: BankRuleCheckResult[] = evaluateBankRules(cards);
 
-  const [selectedBankFilter, setSelectedBankFilter] = useState<string>('all');
   const [simulatorCard, setSimulatorCard] = useState<string>('Chase Sapphire Preferred');
+  const [expandedBanks, setExpandedBanks] = useState<Record<string, boolean>>({
+    Chase: true,
+    'American Express': false,
+    'Bank of America': false,
+    Citi: false,
+    'Capital One': false,
+  });
 
   // Popular cards for the interactive checker
   const SIMULATION_TARGETS = [
@@ -200,13 +255,46 @@ export const EligibilityTracker: React.FC<EligibilityTrackerProps> = ({ cards })
   const hasError = simulationChecks.some((c) => c.severity === 'error');
   const hasWarning = simulationChecks.some((c) => c.severity === 'warning');
 
-  const filteredRules = ruleResults.filter((r) => {
-    if (selectedBankFilter === 'all') return true;
-    return r.bank === selectedBankFilter;
-  });
+  const toggleBank = (bank: Bank) => {
+    setExpandedBanks((current) => ({ ...current, [bank]: !current[bank] }));
+  };
+
+  const amexRevolvingCards = cards.filter(
+    (card) =>
+      card.status === 'active' &&
+      card.bank === 'American Express' &&
+      !['platinum', 'gold', 'green'].some((chargeCard) =>
+        card.currentName.toLowerCase().includes(chargeCard)
+      )
+  );
+  const previouslyHeldAmexProducts = Array.from(
+    cards
+      .filter((card) => card.bank === 'American Express')
+      .reduce((products, card) => {
+        products.set(card.originalName, card);
+        products.set(card.currentName, card);
+        return products;
+      }, new Map<string, CreditCard>())
+      .entries()
+  ).map(([name, card]) => ({ name, card }));
+  const bofaPersonalCards = cards.filter(
+    (card) => card.bank === 'Bank of America' && card.cardType === 'personal'
+  );
+  const bofaVelocity = {
+    twoMonths: bofaPersonalCards.filter((card) => isWithinPastMonths(card.openDate, 2)).length,
+    twelveMonths: bofaPersonalCards.filter((card) => isWithinPastMonths(card.openDate, 12)).length,
+    twentyFourMonths: bofaPersonalCards.filter((card) => isWithinPastMonths(card.openDate, 24)).length,
+  };
 
   return (
     <div className="space-y-6" id="eligibility-tracker-view">
+      <BankRestrictionSection
+        bank="Chase"
+        title="Chase restrictions"
+        subtitle="5/24 status, cards that count, and Sapphire eligibility reminders."
+        isExpanded={expandedBanks.Chase}
+        onToggle={() => toggleBank('Chase')}
+      >
       {/* 5/24 Master Status Banner */}
       <div
         className={`rounded-2xl p-6 border shadow-xs transition-all ${
@@ -268,21 +356,33 @@ export const EligibilityTracker: React.FC<EligibilityTrackerProps> = ({ cards })
           <div className="flex items-center gap-2">
             {[1, 2, 3, 4, 5].map((slotNumber) => {
               const isFilled = slotNumber <= fiveTwentyFour.count;
+              const countedCard = fiveTwentyFour.cardsCounted[slotNumber - 1]?.card;
               return (
                 <div
                   key={slotNumber}
                   className="flex flex-col items-center gap-1.5"
                 >
                   <div
-                    className={`w-10 h-12 rounded-xl flex items-center justify-center font-bold text-sm border transition-all ${
+                    title={countedCard ? `Slot ${slotNumber}: ${countedCard.nickname || countedCard.currentName}` : `Slot ${slotNumber} available`}
+                    className={`w-14 h-9 rounded-lg flex items-center justify-center font-bold text-sm border transition-all ${
                       isFilled
-                        ? fiveTwentyFour.count >= 5
-                          ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
-                          : 'bg-neutral-900 text-white border-neutral-900 shadow-xs'
+                        ? 'bg-transparent border-transparent'
                         : 'bg-white text-neutral-400 border-dashed border-neutral-300'
                     }`}
                   >
-                    {isFilled ? slotNumber : '+'}
+                    {isFilled && countedCard ? (
+                      <CardVisual
+                        variant="thumb"
+                        name={countedCard.nickname || countedCard.currentName}
+                        bank={countedCard.bank}
+                        network={countedCard.network}
+                        imageUrl={countedCard.imageUrl}
+                        cardColor={countedCard.cardColor}
+                        className="w-14 h-9 rounded-lg border border-black/10 shadow-sm"
+                      />
+                    ) : (
+                      '+'
+                    )}
                   </div>
                   <span className="text-[10px] font-medium text-neutral-500">
                     Slot {slotNumber}
@@ -389,6 +489,141 @@ export const EligibilityTracker: React.FC<EligibilityTrackerProps> = ({ cards })
         )}
       </div>
 
+      </BankRestrictionSection>
+
+      <BankRestrictionSection
+        bank="American Express"
+        title="American Express restrictions"
+        subtitle="Track revolving-card slots and review welcome-offer eligibility."
+        isExpanded={expandedBanks['American Express']}
+        onToggle={() => toggleBank('American Express')}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="rounded-2xl p-5 border border-sky-200 bg-sky-50/50 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-sky-700">Revolving card slots</p>
+                <h3 className="mt-1 text-2xl font-bold text-neutral-900">
+                  {amexRevolvingCards.length} <span className="text-base font-medium text-neutral-500">/ 5 used</span>
+                </h3>
+              </div>
+              <BankLogo bank="American Express" size="sm" variant="badge" />
+            </div>
+            <p className="text-xs text-neutral-600 leading-relaxed">
+              The tracker treats revolving credit cards separately from charge cards such as Gold, Green, and Platinum.
+            </p>
+            <div className="flex gap-1.5" aria-label={`${amexRevolvingCards.length} of 5 Amex revolving card slots used`}>
+              {[1, 2, 3, 4, 5].map((slot) => (
+                <span
+                  key={slot}
+                  className={`h-2 flex-1 rounded-full ${
+                    slot <= amexRevolvingCards.length ? 'bg-sky-600' : 'bg-white border border-sky-200'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl p-5 border border-amber-200 bg-amber-50/50 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">Welcome offer history</p>
+                <h3 className="mt-1 text-sm font-bold text-neutral-900">Previously held Amex products</h3>
+              </div>
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+            </div>
+            {previouslyHeldAmexProducts.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {previouslyHeldAmexProducts.map(({ name, card }) => (
+                  <div key={name} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white border border-amber-200 text-xs font-medium text-neutral-700">
+                    <CardVisual
+                      variant="thumb"
+                      name={name}
+                      bank={card.bank}
+                      network={card.network}
+                      imageUrl={card.imageUrl}
+                      cardColor={card.cardColor}
+                      className="w-10 h-6"
+                    />
+                    <span>{name}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-600">No Amex products are recorded in this portfolio.</p>
+            )}
+            <p className="text-xs text-neutral-600 leading-relaxed">
+              A previously held product may not qualify for a standard welcome offer. Confirm the exact offer terms before applying; bonus awards are not recorded here.
+            </p>
+          </div>
+        </div>
+      </BankRestrictionSection>
+
+      <BankRestrictionSection
+        bank="Bank of America"
+        title="Bank of America restrictions"
+        subtitle="2/3/4 consumer-card velocity status based on your recorded BofA cards."
+        isExpanded={expandedBanks['Bank of America']}
+        onToggle={() => toggleBank('Bank of America')}
+      >
+        <div className="rounded-2xl p-5 border border-rose-200 bg-rose-50/50">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-rose-700">Bank of America 2/3/4 status</p>
+              <h3 className="mt-1 text-2xl font-bold text-neutral-900">Application velocity is being tracked</h3>
+              <p className="mt-2 text-xs text-neutral-600 max-w-2xl leading-relaxed">
+                This planning rule uses rolling windows for Bank of America personal cards: two in 2 months, three in 12 months, and four in 24 months.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 shrink-0">
+              {[
+                { label: '2 months', value: bofaVelocity.twoMonths, max: 2 },
+                { label: '12 months', value: bofaVelocity.twelveMonths, max: 3 },
+                { label: '24 months', value: bofaVelocity.twentyFourMonths, max: 4 },
+              ].map((window) => (
+                <div key={window.label} className="min-w-20 rounded-xl bg-white border border-rose-200 p-3 text-center">
+                  <strong className="block text-lg text-neutral-900">{window.value}/{window.max}</strong>
+                  <span className="text-[10px] text-neutral-500">{window.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </BankRestrictionSection>
+
+      {(['Citi', 'Capital One'] as Bank[]).map((bank) => {
+        const rules = ruleResults.filter((rule) => rule.bank === bank);
+        return (
+          <BankRestrictionSection
+            key={bank}
+            bank={bank}
+            title={`${bank} restrictions`}
+            subtitle={BANK_SECTION_DESCRIPTIONS[bank] || 'Application guidance based on your portfolio.'}
+            isExpanded={expandedBanks[bank]}
+            onToggle={() => toggleBank(bank)}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {rules.map((rule) => (
+                <div key={rule.ruleName} className="rounded-xl border border-neutral-200 p-4 space-y-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-sm font-bold text-neutral-900">{rule.ruleName}</h3>
+                    <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${
+                      rule.status === 'eligible' ? 'bg-emerald-100 text-emerald-800' : rule.status === 'warning' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                    }`}>
+                      {rule.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-700 leading-relaxed">{rule.title}: {rule.description}</p>
+                  {rule.actionRecommendation && (
+                    <p className="text-[11px] text-neutral-500"><strong className="text-neutral-700">Next step:</strong> {rule.actionRecommendation}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </BankRestrictionSection>
+        );
+      })}
+
       {/* Interactive New Card & Bonus Application Simulator */}
       <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -485,91 +720,6 @@ export const EligibilityTracker: React.FC<EligibilityTrackerProps> = ({ cards })
         </div>
       </div>
 
-      {/* Comprehensive Bank Rules Overview */}
-      <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base font-semibold text-neutral-900 flex items-center gap-2">
-              <Award className="w-4 h-4 text-neutral-600" />
-              All Bank Application Rules & Velocity Guidelines
-            </h3>
-            <p className="text-xs text-neutral-500">
-              Evaluated against your active card portfolio to protect your credit score and approvals
-            </p>
-          </div>
-
-          {/* Filter by Bank */}
-          <select
-            value={selectedBankFilter}
-            onChange={(e) => setSelectedBankFilter(e.target.value)}
-            className="px-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-medium text-neutral-700 self-start sm:self-auto focus:outline-none focus:ring-1 focus:ring-neutral-900"
-          >
-            <option value="all">All Banks</option>
-            <option value="Chase">Chase</option>
-            <option value="American Express">American Express</option>
-            <option value="Capital One">Capital One</option>
-            <option value="Citi">Citi</option>
-            <option value="Bank of America">Bank of America</option>
-          </select>
-        </div>
-
-        {/* Rule cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredRules.map((rule, idx) => {
-            const isEligible = rule.status === 'eligible';
-            const isWarning = rule.status === 'warning';
-
-            return (
-              <div
-                key={idx}
-                className={`p-4 rounded-xl border space-y-2.5 transition-all ${
-                  isEligible
-                    ? 'bg-neutral-50/50 border-neutral-200'
-                    : isWarning
-                    ? 'bg-amber-50/40 border-amber-200'
-                    : 'bg-rose-50/40 border-rose-200'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <BankLogo bank={rule.bank} size="xs" variant="badge" />
-                    <h4 className="text-xs font-bold text-neutral-900">{rule.ruleName}</h4>
-                  </div>
-
-                  <span
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${
-                      isEligible
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : isWarning
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-rose-100 text-rose-800'
-                    }`}
-                  >
-                    {rule.status}
-                  </span>
-                </div>
-
-                <p className="text-xs text-neutral-700 leading-relaxed font-medium">
-                  {rule.title}: {rule.description}
-                </p>
-
-                {rule.details && (
-                  <p className="text-[11px] text-neutral-500 leading-normal">
-                    {rule.details}
-                  </p>
-                )}
-
-                {rule.actionRecommendation && (
-                  <div className="text-[11px] p-2 rounded-lg bg-white border border-neutral-200/80 text-neutral-700">
-                    <span className="font-semibold text-neutral-900 mr-1">Recommendation:</span>
-                    {rule.actionRecommendation}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 };
