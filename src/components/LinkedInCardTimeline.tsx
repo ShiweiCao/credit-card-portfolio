@@ -3,6 +3,7 @@ import { CreditCard, ProductChange, Bank } from '../types';
 import { CardVisual } from './CardVisual';
 import { BankLogo } from './BankLogo';
 import { findCatalogCard } from '../data/cardCatalog';
+import { getCardArtworkUrl } from '../utils/cardArtwork';
 import {
   formatDate,
   formatMonthYear,
@@ -16,7 +17,6 @@ import {
   Calendar,
   DollarSign,
   TrendingDown,
-  TrendingUp,
   Building2,
   Plus,
   Trash2,
@@ -30,6 +30,7 @@ import {
 interface LinkedInCardTimelineProps {
   card: CreditCard;
   onOpenProductChangeModal: (cardId: string) => void;
+  onEditOriginalProduct?: (card: CreditCard) => void;
   onEditProductChange?: (cardId: string, change: ProductChange) => void;
   onDeleteProductChange?: (cardId: string, changeId: string) => void;
   initiallyExpanded?: boolean;
@@ -132,6 +133,7 @@ const BANK_BRANDING: Record<
 export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
   card,
   onOpenProductChangeModal,
+  onEditOriginalProduct,
   onEditProductChange,
   onDeleteProductChange,
   initiallyExpanded = true,
@@ -144,7 +146,7 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
   const currentProductCatalog = hasHistory
     ? findCatalogCard(card.currentName, card.bank)
     : undefined;
-  const currentProductImageUrl = currentProductCatalog?.imageUrl || card.imageUrl;
+  const currentProductImageUrl = getCardArtworkUrl(card);
   const currentProductCardColor = currentProductCatalog?.cardColor || card.cardColor;
   const currentProductNetwork = currentProductCatalog?.network || card.network;
 
@@ -167,8 +169,6 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
     isCurrent: boolean;
     duration: string;
     dateRangeText: string;
-    roleTag: string;
-    changeType?: 'downgrade' | 'upgrade' | 'lateral' | 'origin';
     feeDiff?: number;
     notes?: string;
     isOriginal: boolean;
@@ -192,8 +192,6 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
         card.closedDate,
         card.status === 'active'
       ),
-      roleTag: 'Original Product · Active',
-      changeType: 'origin',
       notes: card.notes || 'Original card opened. No product changes recorded.',
       isOriginal: true,
     });
@@ -211,8 +209,6 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
       isCurrent: false,
       duration: formatLinkedInDuration(card.openDate, firstChange.date),
       dateRangeText: getLinkedInDateRange(card.openDate, firstChange.date, false),
-      roleTag: 'Original Product',
-      changeType: 'origin',
       notes:
         card.notes ||
         `Account opened as ${card.originalName}. Held for ${formatLinkedInDuration(
@@ -234,23 +230,6 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
       const isCurrent = isLatest;
       const feeDiff = change.toAnnualFee - change.fromAnnualFee;
 
-      let roleTag = 'Product Change';
-      if (isPresent) {
-        roleTag =
-          change.changeType === 'downgrade'
-            ? 'Current Active · Downgraded'
-            : change.changeType === 'upgrade'
-            ? 'Current Active · Upgraded'
-            : 'Current Active Product';
-      } else {
-        roleTag =
-          change.changeType === 'downgrade'
-            ? 'Downgrade Stage'
-            : change.changeType === 'upgrade'
-            ? 'Upgrade Stage'
-            : 'Lateral Stage';
-      }
-
       stages.push({
         id: change.id,
         productName: change.toProductName,
@@ -261,8 +240,6 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
         isCurrent,
         duration: formatLinkedInDuration(startDate, isPresent ? undefined : endDate),
         dateRangeText: getLinkedInDateRange(startDate, endDate, isPresent),
-        roleTag,
-        changeType: change.changeType,
         feeDiff,
         notes: change.notes,
         isOriginal: false,
@@ -404,10 +381,10 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
             {reverseStages.map((stage, idx) => {
               const isFirstInList = idx === 0; // The latest role
               const isLastInList = idx === reverseStages.length - 1; // The original opening
-              const isDowngrade = stage.changeType === 'downgrade';
-              const isUpgrade = stage.changeType === 'upgrade';
               const catalogProduct = findCatalogCard(stage.productName, card.bank);
-              const stageImageUrl = catalogProduct?.imageUrl || card.imageUrl;
+              const stageImageUrl = stage.isCurrent
+                ? getCardArtworkUrl(card, stage.productName)
+                : catalogProduct?.imageUrl || card.imageUrl;
               const stageChange = card.productChanges?.find((change) => change.id === stage.id);
 
               return (
@@ -470,25 +447,21 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
                           </span>
                         )}
 
-                        {isDowngrade && (
-                          <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                            <TrendingDown className="w-3 h-3 text-emerald-600" />
-                            Fee Downgrade
-                          </span>
-                        )}
-
-                        {isUpgrade && (
-                          <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3 text-purple-600" />
-                            Card Upgrade
-                          </span>
-                        )}
                       </div>
 
                       {/* Product-change actions */}
-                      {!stage.isOriginal && stageChange && (onEditProductChange || onDeleteProductChange) && (
+                      {(stage.isOriginal && onEditOriginalProduct) || (!stage.isOriginal && stageChange && (onEditProductChange || onDeleteProductChange)) ? (
                         <div className="flex items-center gap-2 self-start">
-                          {onEditProductChange && (
+                          {stage.isOriginal && onEditOriginalProduct ? (
+                            <button
+                              onClick={() => onEditOriginalProduct(card)}
+                              className="text-neutral-400 hover:text-indigo-600 text-xs flex items-center gap-1"
+                              title="Edit original product"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+                          ) : onEditProductChange && (
                             <button
                               onClick={() => onEditProductChange(card.id, stageChange)}
                               className="text-neutral-400 hover:text-indigo-600 text-xs flex items-center gap-1"
@@ -498,7 +471,7 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
                               <span>Edit</span>
                             </button>
                           )}
-                          {onDeleteProductChange && (
+                          {!stage.isOriginal && onDeleteProductChange && (
                             <button
                               onClick={() => onDeleteProductChange(card.id, stage.id)}
                               className="text-neutral-400 hover:text-red-600 text-xs flex items-center gap-1"
@@ -509,7 +482,7 @@ export const LinkedInCardTimeline: React.FC<LinkedInCardTimelineProps> = ({
                             </button>
                           )}
                         </div>
-                      )}
+                      ) : null}
                     </div>
 
                     {/* LinkedIn Dates Line (e.g. "Apr 2025 – Present · 1 yr 5 mos") */}

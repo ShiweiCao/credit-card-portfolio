@@ -14,8 +14,6 @@ export type CardType = 'personal' | 'business';
 
 export type CardNetwork = 'Visa' | 'Mastercard' | 'American Express' | 'Discover' | 'Other';
 
-export type ChangeType = 'downgrade' | 'upgrade' | 'lateral';
-
 export interface ProductChange {
   id: string;
   cardId: string;
@@ -24,7 +22,6 @@ export interface ProductChange {
   toProductName: string;
   fromAnnualFee: number;
   toAnnualFee: number;
-  changeType: ChangeType;
   notes?: string;
 }
 
@@ -45,6 +42,9 @@ export interface CreditCard {
   productChanges: ProductChange[];
   notes?: string;
   cardColor?: string;
+  /** Explicit user-selected artwork; takes precedence over catalog artwork. */
+  customImageUrl?: string;
+  /** Legacy saved artwork retained only as a fallback for cards without a catalog match. */
   imageUrl?: string;
 }
 

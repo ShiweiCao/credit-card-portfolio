@@ -12,11 +12,24 @@ import { AnnualFeeSummary } from './components/AnnualFeeSummary';
 import { ProductChangeHistory } from './components/ProductChangeHistory';
 import { EligibilityTracker } from './components/EligibilityTracker';
 import { LinkedInTimelineModal } from './components/LinkedInTimelineModal';
+import { OriginalProductModal } from './components/OriginalProductModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { APP_STORAGE_KEY, exportToGist, GistSyncError, importFromGist } from './utils/gistSync';
 
 const STORAGE_KEY = APP_STORAGE_KEY;
+
+// Remove the retired product-change classification from existing local and imported data.
+const normalizeCards = (records: CreditCard[]): CreditCard[] =>
+  records.map((card) => ({
+    ...card,
+    productChanges: (card.productChanges || []).map((change) => {
+      const { changeType: _retiredChangeType, ...productChange } = change as ProductChange & {
+        changeType?: unknown;
+      };
+      return productChange;
+    }),
+  }));
 
 export default function App() {
   const [cards, setCards] = useState<CreditCard[]>(() => {
@@ -25,7 +38,7 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return normalizeCards(parsed as CreditCard[]);
         }
       }
     } catch {
@@ -44,6 +57,7 @@ export default function App() {
   const [selectedCardIdForPC, setSelectedCardIdForPC] = useState<string | undefined>(undefined);
   const [productChangeToEdit, setProductChangeToEdit] = useState<ProductChange | null>(null);
   const [cardForTimelineModal, setCardForTimelineModal] = useState<CreditCard | null>(null);
+  const [cardForOriginalProductEdit, setCardForOriginalProductEdit] = useState<CreditCard | null>(null);
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
 
   // Toast notification
@@ -117,7 +131,7 @@ export default function App() {
             annualFee: change.toAnnualFee,
             network: destinationProduct?.network || card.network,
             cardColor: destinationProduct?.cardColor || card.cardColor,
-            imageUrl: destinationProduct?.imageUrl || card.imageUrl,
+            customImageUrl: undefined,
             productChanges: [change, ...(card.productChanges || [])],
           };
         }
@@ -145,7 +159,6 @@ export default function App() {
             annualFee: latestChange ? latestChange.toAnnualFee : card.annualFee,
             network: currentProduct?.network || card.network,
             cardColor: currentProduct?.cardColor || card.cardColor,
-            imageUrl: currentProduct?.imageUrl || card.imageUrl,
             productChanges: updatedChanges,
           };
         }
@@ -182,12 +195,49 @@ export default function App() {
           annualFee: latestChange.toAnnualFee,
           network: currentProduct?.network || card.network,
           cardColor: currentProduct?.cardColor || card.cardColor,
-          imageUrl: currentProduct?.imageUrl || card.imageUrl,
+          customImageUrl: latestChange.id === updatedChange.id ? undefined : card.customImageUrl,
           productChanges: chronologicalChanges,
         };
       })
     );
     showToast(`Updated product change to "${updatedChange.toProductName}"`);
+  };
+
+  const handleSaveOriginalProduct = (cardId: string, originalName: string, originalAnnualFee: number) => {
+    setCards((prev) =>
+      prev.map((card) => {
+        if (card.id !== cardId) return card;
+
+        const chronologicalChanges = [...(card.productChanges || [])].sort((a, b) =>
+          a.date.localeCompare(b.date)
+        );
+        const firstChange = chronologicalChanges[0];
+
+        if (firstChange) {
+          return {
+            ...card,
+            originalName,
+            productChanges: card.productChanges.map((change) =>
+              change.id === firstChange.id
+                ? { ...change, fromProductName: originalName, fromAnnualFee: originalAnnualFee }
+                : change
+            ),
+          };
+        }
+
+        const originalProduct = findCatalogCard(originalName, card.bank);
+        return {
+          ...card,
+          originalName,
+          currentName: originalName,
+          annualFee: originalAnnualFee,
+          network: originalProduct?.network || card.network,
+          cardColor: originalProduct?.cardColor || card.cardColor,
+        };
+      })
+    );
+    setCardForOriginalProductEdit(null);
+    showToast(`Updated original product to "${originalName}"`);
   };
 
   // Open modals
@@ -230,7 +280,7 @@ export default function App() {
       try {
         const parsed = JSON.parse(event.target?.result as string);
         if (Array.isArray(parsed)) {
-          setCards(parsed);
+          setCards(normalizeCards(parsed as CreditCard[]));
           showToast(`Successfully imported ${parsed.length} cards`);
         } else {
           showToast('Invalid portfolio JSON file format', 'error');
@@ -272,7 +322,7 @@ export default function App() {
   const handleCloudImport = async () => {
     try {
       const importedCards = await importFromGist();
-      setCards(importedCards as CreditCard[]);
+      setCards(normalizeCards(importedCards as CreditCard[]));
       showToast(`Restored ${importedCards.length} cards from cloud`);
     } catch (error) {
       showToast(error instanceof GistSyncError ? error.message : 'Cloud import failed. Please try again.', 'error');
@@ -327,6 +377,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div key={activeTab} className="tab-content-enter">
         {activeTab === 'cards' && (
           <CardList
             cards={cards}
@@ -352,10 +403,12 @@ export default function App() {
             onOpenProductChangeModal={(cardId) => handleOpenProductChange(cardId)}
             onEditProductChange={(cardId, change) => handleOpenProductChange(cardId, change)}
             onDeleteProductChange={handleDeleteProductChange}
+            onEditOriginalProduct={setCardForOriginalProductEdit}
           />
         )}
 
         {activeTab === 'rules' && <EligibilityTracker cards={cards} />}
+        </div>
       </main>
 
       {/* Footer */}
@@ -371,6 +424,13 @@ export default function App() {
         onClose={() => setIsCardModalOpen(false)}
         onSave={handleSaveCard}
         cardToEdit={cardToEdit}
+      />
+
+      <OriginalProductModal
+        isOpen={!!cardForOriginalProductEdit}
+        card={cardForOriginalProductEdit}
+        onClose={() => setCardForOriginalProductEdit(null)}
+        onSave={handleSaveOriginalProduct}
       />
 
       <ProductChangeModal
@@ -394,6 +454,7 @@ export default function App() {
           handleOpenProductChange(cardId, change);
         }}
         onDeleteProductChange={handleDeleteProductChange}
+        onEditOriginalProduct={setCardForOriginalProductEdit}
       />
 
       <CloudSyncModal

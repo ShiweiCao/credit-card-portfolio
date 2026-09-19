@@ -24,7 +24,6 @@ export const SAMPLE_CARDS: CreditCard[] = [
         toProductName: 'Chase Freedom Unlimited',
         fromAnnualFee: 95,
         toAnnualFee: 0,
-        changeType: 'downgrade',
         notes: 'Downgraded after year 1 to eliminate $95 annual fee while preserving 12k credit line and account age.',
       },
     ],
@@ -104,7 +103,6 @@ export const SAMPLE_CARDS: CreditCard[] = [
         toProductName: 'Citi Double Cash',
         fromAnnualFee: 0,
         toAnnualFee: 0,
-        changeType: 'lateral',
         notes: 'Lateral switch to Double Cash to convert into a catch-all flat 2% cash back earner with $0 fee.',
       },
       {
@@ -115,7 +113,6 @@ export const SAMPLE_CARDS: CreditCard[] = [
         toProductName: 'Citi Custom Cash',
         fromAnnualFee: 95,
         toAnnualFee: 0,
-        changeType: 'downgrade',
         notes: 'Downgraded after year 1 to eliminate $95 fee and secure 5% auto-category rewards on grocery spend.',
       },
     ],

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, ProductChange, ChangeType } from '../types';
+import { CreditCard, ProductChange } from '../types';
 import { X, ArrowRightLeft, TrendingDown, TrendingUp, Sparkles } from 'lucide-react';
 import { toDateString, getTodayDate } from '../utils/dateUtils';
 import { CardVisual } from './CardVisual';
 import { findCatalogCard } from '../data/cardCatalog';
+import { getCardArtworkUrl } from '../utils/cardArtwork';
 import { CardAutocompleteInput } from './CardAutocompleteInput';
 
 interface ProductChangeModalProps {
@@ -30,7 +31,6 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
   const [toProductName, setToProductName] = useState('');
   const [changeDate, setChangeDate] = useState(toDateString(getTodayDate()));
   const [toAnnualFee, setToAnnualFee] = useState<number>(0);
-  const [changeType, setChangeType] = useState<ChangeType>('downgrade');
   const [notes, setNotes] = useState('');
 
   const isEditing = Boolean(productChangeToEdit);
@@ -53,7 +53,6 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
       setToProductName(productChangeToEdit.toProductName);
       setChangeDate(productChangeToEdit.date);
       setToAnnualFee(productChangeToEdit.toAnnualFee);
-      setChangeType(productChangeToEdit.changeType);
       setNotes(productChangeToEdit.notes || '');
     }
   }, [isOpen, productChangeToEdit]);
@@ -63,10 +62,8 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
       // If current annual fee is > 0, default to 0 for downgrade
       if (selectedCard.annualFee > 0) {
         setToAnnualFee(0);
-        setChangeType('downgrade');
       } else {
         setToAnnualFee(selectedCard.annualFee);
-        setChangeType('lateral');
       }
     }
   }, [selectedCard, productChangeToEdit]);
@@ -85,7 +82,6 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
       toProductName: toProductName.trim(),
       fromAnnualFee: productChangeToEdit?.fromAnnualFee ?? selectedCard.annualFee,
       toAnnualFee: Number(toAnnualFee) || 0,
-      changeType,
       notes: notes.trim() || undefined,
     };
 
@@ -167,7 +163,7 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
                   name={selectedCard.nickname || selectedCard.currentName}
                   bank={selectedCard.bank}
                   network={selectedProductCatalog?.network || selectedCard.network}
-                  imageUrl={selectedProductCatalog?.imageUrl || selectedCard.imageUrl}
+                  imageUrl={getCardArtworkUrl(selectedCard)}
                   cardColor={selectedProductCatalog?.cardColor || selectedCard.cardColor}
                 />
                 <div>
@@ -283,30 +279,6 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
               </span>
             </div>
           )}
-
-          {/* Change Type Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider">
-              Change Classification
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['downgrade', 'lateral', 'upgrade'] as ChangeType[]).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  id={`pc-type-${type}-btn`}
-                  onClick={() => setChangeType(type)}
-                  className={`py-2 px-2 text-xs font-medium rounded-xl border capitalize text-center transition-all ${
-                    changeType === type
-                      ? 'bg-neutral-900 text-white border-neutral-900 shadow-xs'
-                      : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Notes */}
           <div>

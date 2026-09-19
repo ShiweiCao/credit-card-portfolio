@@ -10,6 +10,7 @@ interface LinkedInTimelineModalProps {
   onOpenProductChangeModal: (cardId: string) => void;
   onEditProductChange?: (cardId: string, change: ProductChange) => void;
   onDeleteProductChange?: (cardId: string, changeId: string) => void;
+  onEditOriginalProduct?: (card: CreditCard) => void;
 }
 
 export const LinkedInTimelineModal: React.FC<LinkedInTimelineModalProps> = ({
@@ -19,6 +20,7 @@ export const LinkedInTimelineModal: React.FC<LinkedInTimelineModalProps> = ({
   onOpenProductChangeModal,
   onEditProductChange,
   onDeleteProductChange,
+  onEditOriginalProduct,
 }) => {
   if (!isOpen || !card) return null;
 
@@ -68,6 +70,10 @@ export const LinkedInTimelineModal: React.FC<LinkedInTimelineModalProps> = ({
               onEditProductChange?.(id, change);
             }}
             onDeleteProductChange={onDeleteProductChange}
+            onEditOriginalProduct={(timelineCard) => {
+              onClose();
+              onEditOriginalProduct?.(timelineCard);
+            }}
             initiallyExpanded={true}
           />
         </div>

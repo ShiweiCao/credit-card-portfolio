@@ -25,6 +25,7 @@ interface ProductChangeHistoryProps {
   onOpenProductChangeModal: (cardId?: string) => void;
   onEditProductChange: (cardId: string, change: ProductChange) => void;
   onDeleteProductChange: (cardId: string, changeId: string) => void;
+  onEditOriginalProduct: (card: CreditCard) => void;
   selectedCardId?: string;
 }
 
@@ -33,6 +34,7 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
   onOpenProductChangeModal,
   onEditProductChange,
   onDeleteProductChange,
+  onEditOriginalProduct,
   selectedCardId,
 }) => {
   const [viewMode, setViewMode] = useState<'linkedin' | 'log'>('linkedin');
@@ -342,6 +344,7 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
                   onOpenProductChangeModal={onOpenProductChangeModal}
                   onEditProductChange={onEditProductChange}
                   onDeleteProductChange={onDeleteProductChange}
+                  onEditOriginalProduct={onEditOriginalProduct}
                   initiallyExpanded={true}
                 />
               ))}
@@ -369,8 +372,6 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
             <div className="space-y-3">
               {filteredChanges.map(({ change, card }) => {
                 const feeDiff = change.toAnnualFee - change.fromAnnualFee;
-                const isDowngrade = change.changeType === 'downgrade' || feeDiff < 0;
-                const isUpgrade = change.changeType === 'upgrade' || feeDiff > 0;
 
                 return (
                   <div
@@ -390,18 +391,6 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`text-xs px-2.5 py-0.5 rounded-full font-medium capitalize ${
-                            isDowngrade
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : isUpgrade
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-neutral-100 text-neutral-700'
-                          }`}
-                        >
-                          {change.changeType}
-                        </span>
-
                         <button
                           onClick={() => onEditProductChange(card.id, change)}
                           className="p-1 text-neutral-400 hover:text-indigo-600 rounded-md transition-colors"
