@@ -3,6 +3,7 @@ import { CreditCard, UpcomingFeeItem } from '../types';
 import { getNextRenewalDate, getDaysUntil, formatDate, formatMonthDay } from '../utils/dateUtils';
 import { CardVisual } from './CardVisual';
 import { BankLogo } from './BankLogo';
+import { getCardArtworkUrl } from '../utils/cardArtwork';
 import {
   DollarSign,
   Calendar,
@@ -10,7 +11,6 @@ import {
   Clock,
   ArrowRightLeft,
   CheckCircle2,
-  HelpCircle,
   Building2,
 } from 'lucide-react';
 
@@ -308,17 +308,6 @@ export const AnnualFeeSummary: React.FC<AnnualFeeSummaryProps> = ({
           </div>
         </div>
 
-        {/* Retention Policy Helper Box */}
-        <div className="p-3.5 rounded-xl bg-blue-50/80 border border-blue-200/80 flex items-start gap-3 text-xs text-blue-950">
-          <HelpCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <span className="font-semibold block">Pro-Tip for Card Annual Fee Renewal:</span>
-            <p className="text-blue-900/90 leading-relaxed">
-              Most major issuers (like Chase and Amex) provide a <strong>30-day grace period</strong> after the annual fee posts to your statement. You can call customer service to request a <strong>retention bonus offer</strong> (spending credit or bonus points to offset the fee), or <strong>product change (downgrade)</strong> to a $0 annual fee card to receive a 100% refund of the annual fee while keeping your account history and credit line intact!
-            </p>
-          </div>
-        </div>
-
         {/* List of upcoming fees */}
         {filteredUpcoming.length === 0 ? (
           <div className="py-8 text-center text-neutral-500 text-sm">
@@ -344,7 +333,7 @@ export const AnnualFeeSummary: React.FC<AnnualFeeSummaryProps> = ({
                       name={item.card.nickname || item.card.currentName}
                       bank={item.card.bank}
                       network={item.card.network}
-                      imageUrl={item.card.imageUrl}
+                      imageUrl={getCardArtworkUrl(item.card)}
                       cardColor={item.card.cardColor}
                       className="mt-0.5"
                     />

@@ -130,7 +130,7 @@ export const CardModal: React.FC<CardModalProps> = ({
       setCreditLimit(cardToEdit.creditLimit ? String(cardToEdit.creditLimit) : '');
       setFeeRenewalDate(cardToEdit.feeRenewalDate || '');
       setNotes(cardToEdit.notes || '');
-      setImageUrl(currentProductCatalog?.imageUrl || cardToEdit.imageUrl || '');
+      setImageUrl(cardToEdit.customImageUrl || '');
       setCardColor(currentProductCatalog?.cardColor || cardToEdit.cardColor || '');
       setPrefillNotice(null);
     } else {
@@ -160,7 +160,7 @@ export const CardModal: React.FC<CardModalProps> = ({
     setAnnualFee(catalogCard.annualFee);
     setCardType(catalogCard.cardType);
     setNetwork(catalogCard.network);
-    setImageUrl(catalogCard.imageUrl || '');
+    setImageUrl('');
     setCardColor(catalogCard.cardColor || BANK_GRADIENTS[catalogCard.bank] || 'from-neutral-700 to-neutral-900');
     setPrefillNotice(`✨ Auto-prefilled from catalog: ${catalogCard.bank} • $${catalogCard.annualFee}/yr • ${catalogCard.cardType}`);
     setTimeout(() => {
@@ -188,7 +188,8 @@ export const CardModal: React.FC<CardModalProps> = ({
       productChanges: cardToEdit ? cardToEdit.productChanges : [],
       notes: notes.trim() || undefined,
       cardColor: cardColor || cardToEdit?.cardColor || BANK_GRADIENTS[bank] || 'from-neutral-700 to-neutral-900',
-      imageUrl: imageUrl.trim() || undefined,
+      customImageUrl: imageUrl.trim() || undefined,
+      imageUrl: cardToEdit?.imageUrl,
     };
 
     onSave(newCard);
@@ -259,7 +260,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                 annualFee={annualFee}
                 cardType={cardType}
                 network={network}
-                imageUrl={imageUrl}
+                imageUrl={imageUrl || findCatalogCard(cardName, bank)?.imageUrl || cardToEdit?.imageUrl}
                 cardColor={cardColor}
                 variant="compact"
               />
@@ -288,7 +289,7 @@ export const CardModal: React.FC<CardModalProps> = ({
             <div className="p-3.5 rounded-xl bg-neutral-50 border border-neutral-200 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <label className="font-semibold text-neutral-700">
-                  Card Artwork Image URL or Path
+                  Custom Card Artwork Override
                 </label>
                 {imageUrl && (
                   <button

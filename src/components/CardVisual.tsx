@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bank, CardNetwork } from '../types';
 import { BankLogo, NetworkLogo } from './BankLogo';
 import { Wifi } from 'lucide-react';
@@ -12,6 +12,7 @@ interface CardVisualProps {
   variant?: 'thumb' | 'compact' | 'header' | 'hero';
   className?: string;
   showDetails?: boolean;
+  preserveArtworkEdges?: boolean;
 }
 
 export const CardVisual: React.FC<CardVisualProps> = ({
@@ -23,9 +24,16 @@ export const CardVisual: React.FC<CardVisualProps> = ({
   variant = 'header',
   className = '',
   showDetails = true,
+  preserveArtworkEdges = false,
 }) => {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+
+  // A replacement URL deserves a fresh load attempt after a previous URL failed.
+  useEffect(() => {
+    setImgError(false);
+    setImgLoaded(false);
+  }, [imageUrl]);
 
   // Gradient fallback
   const bgGradient = cardColor || 'from-neutral-800 via-neutral-900 to-black';
@@ -34,14 +42,20 @@ export const CardVisual: React.FC<CardVisualProps> = ({
   if (variant === 'thumb') {
     return (
       <div
-        className={`relative w-12 h-7.5 rounded-md overflow-hidden shrink-0 border border-black/10 shadow-xs flex items-center justify-center select-none bg-gradient-to-br ${bgGradient} ${className}`}
+        className={`relative w-12 h-7.5 shrink-0 flex items-center justify-center select-none bg-gradient-to-br ${
+          preserveArtworkEdges
+            ? 'overflow-visible rounded-none bg-transparent shadow-none'
+            : 'rounded-md overflow-hidden shadow-xs'
+        } ${className}`}
       >
         {imageUrl && !imgError ? (
           <img
             src={imageUrl}
             alt={name}
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover object-center"
+            className={`w-full h-full object-contain object-center ${
+              preserveArtworkEdges ? 'bg-transparent' : 'bg-neutral-100'
+            }`}
             loading="lazy"
           />
         ) : (

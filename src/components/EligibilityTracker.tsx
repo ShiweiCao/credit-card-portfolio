@@ -4,6 +4,7 @@ import { calculateChase524, evaluateBankRules } from '../utils/rulesEngine';
 import { formatDate, isWithinPastMonths } from '../utils/dateUtils';
 import { BankLogo } from './BankLogo';
 import { CardVisual } from './CardVisual';
+import { getCardArtworkUrl } from '../utils/cardArtwork';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -376,7 +377,7 @@ export const EligibilityTracker: React.FC<EligibilityTrackerProps> = ({ cards })
                         name={countedCard.nickname || countedCard.currentName}
                         bank={countedCard.bank}
                         network={countedCard.network}
-                        imageUrl={countedCard.imageUrl}
+                        imageUrl={getCardArtworkUrl(countedCard)}
                         cardColor={countedCard.cardColor}
                         className="w-14 h-9 rounded-lg border border-black/10 shadow-sm"
                       />
@@ -541,7 +542,7 @@ export const EligibilityTracker: React.FC<EligibilityTrackerProps> = ({ cards })
                       name={name}
                       bank={card.bank}
                       network={card.network}
-                      imageUrl={card.imageUrl}
+                      imageUrl={getCardArtworkUrl(card, name)}
                       cardColor={card.cardColor}
                       className="w-10 h-6"
                     />

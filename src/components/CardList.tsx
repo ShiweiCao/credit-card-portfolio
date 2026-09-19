@@ -4,6 +4,7 @@ import { formatDate, getNextRenewalDate, getDaysUntil, isWithinPastMonths, isWit
 import { CardVisual } from './CardVisual';
 import { BankLogo, NetworkLogo } from './BankLogo';
 import { findCatalogCard } from '../data/cardCatalog';
+import { getCardArtworkUrl } from '../utils/cardArtwork';
 import {
   CreditCard as CardIcon,
   Search,
@@ -272,7 +273,7 @@ export const CardList: React.FC<CardListProps> = ({
             const currentProductCatalog = hasProductChange
               ? findCatalogCard(card.currentName, card.bank)
               : undefined;
-            const displayImageUrl = currentProductCatalog?.imageUrl || card.imageUrl;
+            const displayImageUrl = getCardArtworkUrl(card);
             const displayCardColor = currentProductCatalog?.cardColor || card.cardColor;
             const displayNetwork = currentProductCatalog?.network || card.network;
             const currentProductStartDate = hasProductChange
@@ -306,38 +307,25 @@ export const CardList: React.FC<CardListProps> = ({
               <div
                 key={card.id}
                 id={`card-item-${card.id}`}
-                className={`bg-white rounded-2xl border transition-all flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-md ${
+                className={`bg-white rounded-2xl border transition-all flex flex-col h-full min-h-[292px] overflow-hidden shadow-xs hover:shadow-md ${
                   card.status === 'closed'
                     ? 'border-neutral-200 opacity-75'
                     : 'border-neutral-200 hover:border-neutral-300'
                 }`}
               >
-                {/* Visual Card Top Header */}
-                <div className={`p-4 bg-gradient-to-r ${displayCardColor || 'from-neutral-800 to-neutral-950'} text-white relative overflow-hidden`}>
-                  {displayImageUrl && (
-                    <div className="absolute -right-4 -bottom-4 w-32 h-20 opacity-15 pointer-events-none rotate-6">
-                      <img
-                        src={displayImageUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <BankLogo bank={card.bank} size="xs" variant="white" />
-                      <span className="text-xs font-semibold tracking-wider uppercase opacity-95">
+                {/* Identity header: card art leads, details remain easy to scan. */}
+                <div className="h-[140px] p-4 bg-gradient-to-br from-white via-white to-neutral-50 border-b border-neutral-200">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <BankLogo bank={card.bank} size="sm" variant="badge" />
+                      <span className="text-[11px] font-semibold tracking-wider uppercase text-neutral-600 truncate">
                         {card.bank}
                       </span>
                     </div>
-                    <NetworkLogo network={displayNetwork} size="xs" variant="badge" />
+                    <NetworkLogo network={displayNetwork} size="md" variant="badge" className="px-2 py-1" />
                   </div>
 
-                  <div className="relative z-10 mt-3 flex items-center gap-3">
+                  <div className="mt-4 h-[70px] flex items-center gap-4 min-w-0">
                     <CardVisual
                       variant="thumb"
                       name={card.nickname || card.currentName}
@@ -345,28 +333,25 @@ export const CardList: React.FC<CardListProps> = ({
                       network={displayNetwork}
                       imageUrl={displayImageUrl}
                       cardColor={displayCardColor}
-                      className="w-12 h-8"
+                      preserveArtworkEdges
+                      className="w-28 h-[70px]"
                     />
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-bold tracking-tight truncate" title={card.nickname || card.currentName}>
+                    <div className="min-w-0 flex-1 self-stretch flex flex-col justify-center">
+                      <h3 className="text-base font-bold tracking-tight text-neutral-900 leading-snug line-clamp-2" title={card.nickname || card.currentName}>
                         {card.nickname || card.currentName}
                       </h3>
-                      <div className="text-[11px] text-white/70 truncate leading-none mt-0.5 min-h-[14px]" title={card.nickname ? card.currentName : undefined}>
-                        {card.nickname ? card.currentName : '\u00A0'}
+                      <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                        <span className="text-neutral-500">Since {formatDate(currentProductStartDate)}</span>
+                        <span className="font-bold text-neutral-900 whitespace-nowrap">
+                          {card.annualFee > 0 ? `$${card.annualFee}/yr` : '$0 fee'}
+                        </span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="relative z-10 mt-4 flex items-center justify-between text-xs text-white/90 pt-2 border-t border-white/15">
-                    <span>Since: {formatDate(currentProductStartDate)}</span>
-                    <span className="font-bold text-sm">
-                      {card.annualFee > 0 ? `$${card.annualFee}/yr` : '$0 Fee'}
-                    </span>
                   </div>
                 </div>
 
                 {/* Card Body Details */}
-                <div className="p-4 space-y-3 flex-1 flex flex-col justify-between bg-white text-xs">
+                <div className="p-4 space-y-3 flex-1 flex flex-col bg-white text-xs">
                   {/* Velocity Badges */}
                   {(countsFor524 || bofaBadge || citiBadge) && (
                     <div className="flex items-center gap-2 flex-wrap">
@@ -431,7 +416,7 @@ export const CardList: React.FC<CardListProps> = ({
                   )}
 
                   {/* Card Actions Footer */}
-                  <div className="pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
+                  <div className="mt-auto pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       {/* Switch / PC button */}
                       <button
