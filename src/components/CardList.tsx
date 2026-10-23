@@ -281,6 +281,11 @@ export const CardList: React.FC<CardListProps> = ({
               : card.openDate;
             const nextRenewal = getNextRenewalDate(card.openDate, card.feeRenewalDate);
             const daysUntilFee = getDaysUntil(nextRenewal);
+            const [renewalYear, renewalMonth, renewalDay] = nextRenewal.split('-').map(Number);
+            const previousYear = renewalYear - 1;
+            const previousDay = Math.min(renewalDay, new Date(Date.UTC(previousYear, renewalMonth, 0)).getUTCDate());
+            const cycleDays = (Date.UTC(renewalYear, renewalMonth - 1, renewalDay) - Date.UTC(previousYear, renewalMonth - 1, previousDay)) / 86400000;
+            const cycleProgress = Math.min(100, Math.max(0, (1 - daysUntilFee / cycleDays) * 100));
             const countsFor524 = card.cardType === 'personal' && isWithinPastMonths(card.openDate, 24);
 
             let bofaBadge = null;
@@ -351,7 +356,7 @@ export const CardList: React.FC<CardListProps> = ({
                 </div>
 
                 {/* Card Body Details */}
-                <div className="p-4 space-y-3 flex-1 flex flex-col bg-white text-xs">
+                <div className="p-4 gap-3 flex-1 flex flex-col bg-white text-xs">
                   {/* Velocity Badges */}
                   {(countsFor524 || bofaBadge || citiBadge) && (
                     <div className="flex items-center gap-2 flex-wrap">
@@ -385,29 +390,6 @@ export const CardList: React.FC<CardListProps> = ({
                     </div>
                   )}
 
-                  {/* Renewal reminder */}
-                  {card.status === 'active' && card.annualFee > 0 && (
-                    <div
-                      className={`p-2.5 rounded-xl border flex items-center justify-between text-[11px] ${
-                        daysUntilFee <= 30
-                          ? 'bg-amber-50/70 border-amber-200 text-amber-950 font-medium'
-                          : 'bg-neutral-50 border-neutral-200 text-neutral-600'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-neutral-500" />
-                        <span>Fee Renewal: {formatDate(nextRenewal)}</span>
-                      </div>
-                      <span
-                        className={`font-semibold ${
-                          daysUntilFee <= 30 ? 'text-amber-800' : 'text-neutral-700'
-                        }`}
-                      >
-                        {daysUntilFee <= 0 ? 'Due now' : `In ${daysUntilFee} days`}
-                      </span>
-                    </div>
-                  )}
-
                   {/* Notes (only shown if there is real content) */}
                   {Boolean(card.notes && card.notes.trim().length > 0) && (
                     <p className="text-[11px] text-neutral-500 line-clamp-2 leading-relaxed italic">
@@ -415,8 +397,43 @@ export const CardList: React.FC<CardListProps> = ({
                     </p>
                   )}
 
+                  <div className="flex-1" />
+
+                  {/* Renewal reminder: stays immediately above the actions. */}
+                  {card.status === 'active' && card.annualFee > 0 && (
+                    <div className={`p-2.5 rounded-xl border text-[11px] ${
+                      daysUntilFee <= 30 ? 'bg-orange-50/70 border-orange-200 text-orange-950'
+                        : daysUntilFee <= 90 ? 'bg-amber-50/70 border-amber-200 text-amber-950'
+                        : 'bg-neutral-50 border-neutral-200 text-neutral-600'
+                    }`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 shrink-0" />
+                          <span>Fee Renewal: {formatDate(nextRenewal)}</span>
+                        </div>
+                        <span className="font-semibold whitespace-nowrap">
+                          {daysUntilFee <= 0 ? 'Due now' : `In ${daysUntilFee} days`}
+                        </span>
+                      </div>
+                      <div
+                        role="progressbar"
+                        aria-label="Annual fee cycle"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(cycleProgress)}
+                        aria-valuetext={daysUntilFee <= 0 ? 'Annual fee due today' : `${daysUntilFee} days until annual fee renewal`}
+                        className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-200/80"
+                      >
+                        <div className={`h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none ${
+                          daysUntilFee <= 30 ? 'bg-orange-600' : daysUntilFee <= 90 ? 'bg-amber-500' : 'bg-slate-400'
+                        }`} style={{ width: `${cycleProgress}%` }} />
+                      </div>
+                      <p className="mt-1 text-[10px] opacity-70">Annual fee cycle</p>
+                    </div>
+                  )}
+
                   {/* Card Actions Footer */}
-                  <div className="mt-auto pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
+                  <div className="pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       {/* Switch / PC button */}
                       <button
