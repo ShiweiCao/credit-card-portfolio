@@ -106,6 +106,7 @@ export const CardModal: React.FC<CardModalProps> = ({
   const [cardType, setCardType] = useState<CardType>('personal');
   const [network, setNetwork] = useState<CardNetwork>('Visa');
   const [status, setStatus] = useState<'active' | 'closed'>('active');
+  const [closedDate, setClosedDate] = useState('');
   const [creditLimit, setCreditLimit] = useState<string>('');
   const [feeRenewalDate, setFeeRenewalDate] = useState('');
   const [notes, setNotes] = useState('');
@@ -127,6 +128,7 @@ export const CardModal: React.FC<CardModalProps> = ({
       setCardType(cardToEdit.cardType);
       setNetwork(cardToEdit.network);
       setStatus(cardToEdit.status);
+      setClosedDate(cardToEdit.closedDate || '');
       setCreditLimit(cardToEdit.creditLimit ? String(cardToEdit.creditLimit) : '');
       setFeeRenewalDate(cardToEdit.feeRenewalDate || '');
       setNotes(cardToEdit.notes || '');
@@ -143,6 +145,7 @@ export const CardModal: React.FC<CardModalProps> = ({
       setCardType('personal');
       setNetwork('Visa');
       setStatus('active');
+      setClosedDate('');
       setCreditLimit('');
       setFeeRenewalDate('');
       setNotes('');
@@ -183,6 +186,7 @@ export const CardModal: React.FC<CardModalProps> = ({
       cardType,
       network,
       status,
+      closedDate: status === 'closed' ? closedDate || undefined : undefined,
       creditLimit: creditLimit ? Number(creditLimit) : undefined,
       feeRenewalDate: feeRenewalDate || undefined,
       productChanges: cardToEdit ? cardToEdit.productChanges : [],
@@ -502,6 +506,13 @@ export const CardModal: React.FC<CardModalProps> = ({
           </div>
 
           {/* Status & Credit Limit */}
+          {status === 'closed' && (
+            <div>
+              <label htmlFor="card-input-closeddate" className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider">Closed Date</label>
+              <input id="card-input-closeddate" type="date" required min={openDate} max={toDateString(getTodayDate())} value={closedDate} onChange={(e) => setClosedDate(e.target.value)} className="w-full px-3.5 py-2.5 bg-white border border-neutral-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900" />
+              <p className="mt-1 text-xs text-neutral-500">Used to estimate when this account leaves your credit history.</p>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CreditCard, ProductChange, Bank } from '../types';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, getTodayDate } from '../utils/dateUtils';
+import { getCreditAccountAges } from '../utils/creditAge';
 import { LinkedInCardTimeline } from './LinkedInCardTimeline';
 import { BankLogo } from './BankLogo';
 import {
@@ -18,6 +19,7 @@ import {
   Clock,
   ListFilter,
   Milestone,
+  Info,
 } from 'lucide-react';
 
 interface ProductChangeHistoryProps {
@@ -41,6 +43,16 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
   const [cardScope, setCardScope] = useState<'with-history' | 'all'>('with-history');
   const [selectedBankFilter, setSelectedBankFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+
+  const today = getTodayDate();
+  const accountAges = getCreditAccountAges(cards, today);
+  const formatAge = (months: number) => {
+    const years = Math.floor(months / 12);
+    const remainder = months % 12;
+    return [years ? `${years} yr${years === 1 ? '' : 's'}` : '', remainder || !years ? `${remainder} mo${remainder === 1 ? '' : 's'}` : ''].filter(Boolean).join(' ');
+  };
+  const averageAge = accountAges.length ? formatAge(Math.floor(accountAges.reduce((sum, age) => sum + age, 0) / accountAges.length)) : 'N/A';
+  const longestAge = accountAges.length ? formatAge(Math.max(...accountAges)) : 'N/A';
 
   // Flatten all product changes across all cards with card metadata
   const allChanges: Array<{
@@ -166,20 +178,37 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
         {/* Credit History Preserved */}
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+            <span className="relative group inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
               Credit Bureau Age
+              <button type="button" aria-label="How credit age is calculated" aria-describedby="credit-age-tooltip" className="rounded-full text-neutral-400 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-blue-500">
+                <Info className="w-3.5 h-3.5" />
+              </button>
+              <span id="credit-age-tooltip" role="tooltip" className="absolute left-0 top-full pt-2 z-30 hidden group-hover:block group-focus-within:block w-72 max-w-[calc(100vw-4rem)] normal-case tracking-normal font-normal">
+                <span className="block rounded-xl bg-neutral-900 p-3 text-xs leading-relaxed text-white shadow-lg space-y-2">
+                  <span className="block"><strong>Average</strong> · Mean age of included personal cards.</span>
+                  <span className="block"><strong>Longest</strong> · Age of the oldest included card.</span>
+                  <span className="block border-t border-white/15 pt-2">Closed cards keep aging for 10 years after closure, then drop out of both stats.</span>
+                  <span className="block rounded-lg bg-white/10 p-2"><strong>Example</strong><br />Opened 2020 → closed 2024<br />Age in 2026: 6 years · Removed in 2034</span>
+                  <span className="block text-[11px] text-neutral-300">Estimate for accounts closed in good standing. Missing closure date? Excluded.</span>
+                </span>
+              </span>
             </span>
             <div className="p-2 rounded-xl bg-blue-50 text-blue-700">
               <Layers className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-neutral-900">
-              100% Preserved
-            </span>
+          <div className="mt-3 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-medium text-neutral-500">Average</p>
+              <p className="mt-1 text-xl font-bold tracking-tight text-neutral-900">{averageAge}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-neutral-500">Longest</p>
+              <p className="mt-1 text-xl font-bold tracking-tight text-neutral-900">{longestAge}</p>
+            </div>
           </div>
-          <p className="text-xs text-neutral-500 mt-1">
-            Account open dates & credit lines remain unbroken across all switches
+          <p className="text-xs text-neutral-500 mt-2">
+            Estimated from {accountAges.length} eligible personal account{accountAges.length !== 1 ? 's' : ''}, including cards closed less than 10 years ago.
           </p>
         </div>
       </div>
