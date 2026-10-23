@@ -26,3 +26,16 @@
     animation: none;
   }
 }
+
+@keyframes account-action-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.account-action-fields {
+  animation: account-action-enter 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-action-fields { animation: none; }
+}

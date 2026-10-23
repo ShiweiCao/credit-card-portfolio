@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, ProductChange } from '../types';
-import { X, ArrowRightLeft, TrendingDown, TrendingUp, Sparkles } from 'lucide-react';
+import { X, ArrowRightLeft, TrendingDown, TrendingUp, Sparkles, CircleX } from 'lucide-react';
 import { toDateString, getTodayDate } from '../utils/dateUtils';
 import { CardVisual } from './CardVisual';
 import { findCatalogCard } from '../data/cardCatalog';
@@ -15,6 +15,7 @@ interface ProductChangeModalProps {
   productChangeToEdit?: ProductChange | null;
   onSaveProductChange: (cardId: string, change: ProductChange) => void;
   onUpdateProductChange: (cardId: string, change: ProductChange) => void;
+  onCloseCard: (cardId: string, closedDate: string, notes: string) => void;
 }
 
 export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
@@ -25,6 +26,7 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
   productChangeToEdit,
   onSaveProductChange,
   onUpdateProductChange,
+  onCloseCard,
 }) => {
   const activeCards = cards.filter((c) => c.status === 'active');
   const [cardId, setCardId] = useState<string>('');
@@ -32,6 +34,8 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
   const [changeDate, setChangeDate] = useState(toDateString(getTodayDate()));
   const [toAnnualFee, setToAnnualFee] = useState<number>(0);
   const [notes, setNotes] = useState('');
+  const [action, setAction] = useState<'switch' | 'close'>('switch');
+  const isClosing = action === 'close' && !productChangeToEdit;
 
   const isEditing = Boolean(productChangeToEdit);
   const selectedCard = (isEditing ? cards : activeCards).find((c) => c.id === cardId);
@@ -40,22 +44,14 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
     : undefined;
 
   useEffect(() => {
-    if (selectedCardId && activeCards.some((c) => c.id === selectedCardId)) {
-      setCardId(selectedCardId);
-    } else if (activeCards.length > 0 && !cardId) {
-      setCardId(activeCards[0].id);
-    }
-  }, [selectedCardId, activeCards, cardId]);
-
-  useEffect(() => {
-    if (isOpen && productChangeToEdit) {
-      setCardId(productChangeToEdit.cardId);
-      setToProductName(productChangeToEdit.toProductName);
-      setChangeDate(productChangeToEdit.date);
-      setToAnnualFee(productChangeToEdit.toAnnualFee);
-      setNotes(productChangeToEdit.notes || '');
-    }
-  }, [isOpen, productChangeToEdit]);
+    if (!isOpen) return;
+    setAction('switch');
+    setCardId(productChangeToEdit?.cardId || cards.find((c) => c.id === selectedCardId && c.status === 'active')?.id || cards.find((c) => c.status === 'active')?.id || '');
+    setToProductName(productChangeToEdit?.toProductName || '');
+    setChangeDate(productChangeToEdit?.date || toDateString(getTodayDate()));
+    setToAnnualFee(productChangeToEdit?.toAnnualFee || 0);
+    setNotes(productChangeToEdit?.notes || '');
+  }, [isOpen, productChangeToEdit, selectedCardId]);
 
   useEffect(() => {
     if (selectedCard && !productChangeToEdit) {
@@ -72,7 +68,14 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCard || !toProductName.trim()) return;
+    if (!selectedCard) return;
+    if (isClosing) {
+      if (!changeDate || changeDate < earliestCloseDate || changeDate > toDateString(getTodayDate())) return;
+      onCloseCard(selectedCard.id, changeDate, notes.trim());
+      onClose();
+      return;
+    }
+    if (!toProductName.trim()) return;
 
     const change: ProductChange = {
       id: productChangeToEdit?.id || `pc-${Date.now()}`,
@@ -96,6 +99,8 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
     onClose();
   };
 
+  const earliestCloseDate = selectedCard ? [selectedCard.openDate, ...(selectedCard.productChanges || []).map((change) => change.date)].sort().at(-1)! : '';
+
   const feeDifference = selectedCard ? Number(toAnnualFee) - selectedCard.annualFee : 0;
 
   return (
@@ -105,20 +110,20 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
     >
       <div
         id="product-change-modal-container"
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden border border-neutral-200 my-8"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl h-[min(820px,calc(100dvh-2rem))] flex flex-col overflow-hidden border border-neutral-200"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-neutral-50/70">
+        <div className="flex shrink-0 min-h-24 items-center justify-between px-6 py-4 border-b border-neutral-100 bg-neutral-50/70">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-indigo-900 text-white">
-              <ArrowRightLeft className="w-5 h-5" />
+            <div className={`p-2 rounded-lg ${isClosing ? 'bg-red-50 text-red-700' : 'bg-indigo-900 text-white'}`}>
+              {isClosing ? <CircleX className="w-5 h-5" /> : <ArrowRightLeft className="w-5 h-5" />}
             </div>
             <div>
               <h2 className="text-lg font-semibold text-neutral-900">
-                {isEditing ? 'Edit Card Product Change' : 'Record Card Product Change (Switch)'}
+                {isEditing ? 'Edit Card Product Change' : isClosing ? 'Close Card Account' : 'Record Card Product Change (Switch)'}
               </h2>
               <p className="text-xs text-neutral-500">
-                {isEditing ? 'Update the details of this recorded product change.' : 'e.g. Downgrade Chase Sapphire to Chase Freedom without opening a new account'}
+                {isEditing ? 'Update this switch.' : isClosing ? 'Close the card. Keep its history.' : 'Change products. Keep your account.'}
               </p>
             </div>
           </div>
@@ -132,11 +137,26 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 flex flex-1 min-h-0 flex-col gap-5">
+          {!isEditing && (
+            <div className="relative shrink-0 grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1" aria-label="Account action">
+              <div
+                aria-hidden="true"
+                className={`absolute inset-y-1 left-1 w-[calc(50%-6px)] rounded-lg shadow-sm transition-all duration-200 ease-out motion-reduce:transition-none ${isClosing ? 'bg-red-50' : 'bg-white'}`}
+                style={{ transform: isClosing ? 'translateX(calc(100% + 4px))' : 'translateX(0)' }}
+              />
+              {(['switch', 'close'] as const).map((mode) => (
+                <button key={mode} type="button" aria-pressed={action === mode} onClick={() => setAction(mode)} className={`relative z-10 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${action === mode ? mode === 'close' ? 'text-red-700' : 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-900'}`}>
+                  {mode === 'switch' ? 'Switch' : 'Close'}
+                </button>
+              ))}
+            </div>
+          )}
+          <div key={isClosing ? 'close' : 'switch'} className="flex-1 min-h-0 overflow-y-auto space-y-5 account-action-fields p-1 -m-1">
           {/* Card to switch */}
           <div>
             <label className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider">
-              Select Existing Card to Switch *
+              {isClosing ? 'Select Card to Close *' : 'Select Existing Card to Switch *'}
             </label>
             <select
               id="pc-card-select"
@@ -146,7 +166,7 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
               className="w-full px-3.5 py-2.5 bg-white border border-neutral-300 rounded-xl text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
               required
             >
-              {activeCards.map((c) => (
+              {(isEditing ? cards : activeCards).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.bank} — {c.nickname || c.currentName} (${c.annualFee}/yr)
                 </option>
@@ -155,7 +175,7 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
           </div>
 
           {/* Current Card Overview Banner */}
-          {selectedCard && (
+          {selectedCard && !isClosing && (
             <div className="p-3.5 rounded-xl bg-neutral-50 border border-neutral-200/80 flex items-center justify-between text-xs">
               <div className="flex items-center gap-3">
                 <CardVisual
@@ -186,7 +206,7 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
           )}
 
           {/* Target New Product Name */}
-          <div>
+          {!isClosing && <div>
             <label className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider">
               Switched To (New Product Name) *
             </label>
@@ -205,17 +225,19 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
             <p className="mt-1 text-[11px] text-neutral-500">
               Choose a catalog card to fill its annual fee automatically, or enter a custom product name.
             </p>
-          </div>
+          </div>}
 
           {/* Date & New Fee */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className={`grid grid-cols-1 ${isClosing ? '' : 'sm:grid-cols-2'} gap-4`}>
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider">
-                Date of Product Change *
+                {isClosing ? 'Closed Date *' : 'Date of Product Change *'}
               </label>
               <input
                 id="pc-change-date"
                 type="date"
+                min={isClosing ? earliestCloseDate : undefined}
+                max={isClosing ? toDateString(getTodayDate()) : undefined}
                 value={changeDate}
                 onChange={(e) => setChangeDate(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-white border border-neutral-300 rounded-xl text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
@@ -223,7 +245,7 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
               />
             </div>
 
-            <div>
+            {!isClosing && <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wider">
                 New Annual Fee (USD) *
               </label>
@@ -241,11 +263,11 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
                   required
                 />
               </div>
-            </div>
+            </div>}
           </div>
 
           {/* Fee Impact Display */}
-          {selectedCard && (
+          {selectedCard && !isClosing && (
             <div
               className={`p-3 rounded-xl flex items-center justify-between text-xs border ${
                 feeDifference < 0
@@ -290,13 +312,14 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Retained $12,000 credit limit and preserved credit history age while eliminating the $95 fee."
               className="w-full px-3.5 py-2 bg-white border border-neutral-300 rounded-xl text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
             />
           </div>
 
+          </div>
+
           {/* Action Buttons */}
-          <div className="pt-3 border-t border-neutral-100 flex items-center justify-end gap-3">
+          <div className="shrink-0 pt-3 border-t border-neutral-100 flex items-center justify-end gap-3">
             <button
               id="pc-modal-cancel-btn"
               type="button"
@@ -308,9 +331,10 @@ export const ProductChangeModal: React.FC<ProductChangeModalProps> = ({
             <button
               id="pc-modal-submit-btn"
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-indigo-900 text-white text-sm font-medium hover:bg-indigo-800 transition-colors shadow-sm"
+              disabled={!selectedCard}
+              className={`px-6 py-2.5 rounded-xl text-white text-sm font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isClosing ? 'bg-red-600 hover:bg-red-700 focus-visible:outline-red-600' : 'bg-indigo-900 hover:bg-indigo-800 focus-visible:outline-indigo-900'} focus-visible:outline-2 focus-visible:outline-offset-2`}
             >
-              {isEditing ? 'Save Product Change' : 'Confirm Product Change'}
+              {isEditing ? 'Save Product Change' : isClosing ? 'Confirm Closure' : 'Confirm Product Change'}
             </button>
           </div>
         </form>

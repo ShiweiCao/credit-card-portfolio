@@ -119,6 +119,16 @@ export default function App() {
     }
   };
 
+  const handleCloseCard = (cardId: string, closedDate: string, notes: string) => {
+    setCards((prev) => prev.map((card) => card.id === cardId && card.status === 'active' ? {
+      ...card,
+      status: 'closed',
+      closedDate,
+      notes: notes ? [card.notes, `Closed ${closedDate}: ${notes}`].filter(Boolean).join('\n') : card.notes,
+    } : card));
+    showToast('Account closure recorded');
+  };
+
   // Record Product Change (Switch)
   const handleSaveProductChange = (cardId: string, change: ProductChange) => {
     setCards((prev) =>
@@ -441,6 +451,7 @@ export default function App() {
         productChangeToEdit={productChangeToEdit}
         onSaveProductChange={handleSaveProductChange}
         onUpdateProductChange={handleUpdateProductChange}
+        onCloseCard={handleCloseCard}
       />
 
       <LinkedInTimelineModal
