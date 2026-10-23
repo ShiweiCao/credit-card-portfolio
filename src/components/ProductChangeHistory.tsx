@@ -6,7 +6,6 @@ import { LinkedInCardTimeline } from './LinkedInCardTimeline';
 import { BankLogo } from './BankLogo';
 import {
   ArrowRightLeft,
-  TrendingDown,
   Layers,
   Plus,
   Trash2,
@@ -72,13 +71,6 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
   // Sort chronologically descending (newest switch first)
   allChanges.sort((a, b) => b.change.date.localeCompare(a.change.date));
 
-  // Calculate total fee saved across downgrades
-  let totalSaved = 0;
-  allChanges.forEach(({ change }) => {
-    const diff = change.toAnnualFee - change.fromAnnualFee;
-    if (diff < 0) totalSaved += Math.abs(diff);
-  });
-
   // Cards with at least one product change
   const cardsWithChanges = cards.filter((c) => (c.productChanges || []).length > 0);
 
@@ -132,7 +124,7 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
   return (
     <div className="space-y-6" id="product-change-history-view">
       {/* 1. Top Banner & Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Total Switches */}
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-xs">
           <div className="flex items-center justify-between">
@@ -151,27 +143,6 @@ export const ProductChangeHistory: React.FC<ProductChangeHistoryProps> = ({
           </div>
           <p className="text-xs text-neutral-500 mt-1">
             Across {cardsWithChanges.length} transformed card account{cardsWithChanges.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        {/* Net Fees Saved */}
-        <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Annual Fees Eliminated
-            </span>
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
-              <TrendingDown className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold tracking-tight text-emerald-700">
-              ${totalSaved}
-            </span>
-            <span className="text-xs text-neutral-500 font-medium">/ year saved</span>
-          </div>
-          <p className="text-xs text-neutral-500 mt-1">
-            Saved via strategic fee-free downgrades while keeping cards alive
           </p>
         </div>
 
